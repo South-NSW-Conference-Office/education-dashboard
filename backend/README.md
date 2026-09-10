@@ -13,8 +13,8 @@ src/
   presenters/         Views: JSON contracts (whole dollars) the React app reads
   models/             Mongoose models (minor units, versioned facts, immutable once approved)
   domain/types.ts     Shared vocabulary
-scripts/seed.ts       Loads ../dashboard/data/*.js as version 1 APPROVED per unit + one published week
-tests/                Vitest: services reproduce today's frontend to the dollar (no database needed)
+scripts/seed.ts       Loads seed-data/*.js as version 1 APPROVED per unit + one published week
+tests/                Vitest, no database needed (the suite that asserts real figures ships with the data)
 ```
 
 ## Run it
@@ -22,11 +22,30 @@ tests/                Vitest: services reproduce today's frontend to the dollar 
 ```bash
 cp .env.example .env.local        # MONGODB_URI=mongodb://127.0.0.1:27017/snsw_dashboard
 npm install
-npm run seed:reset                # drop + load the four boards and the databoard
 npm run dev                       # http://localhost:3000  (index page lists every endpoint)
-npm test                          # service acceptance tests
+npm test                          # service tests
 npm run typecheck
 ```
+
+Fill the database one of two ways. Restore the `mongosh` snapshot from the data handover:
+
+```bash
+mongosh "mongodb://127.0.0.1:27017/snsw_dashboard" snsw-dashboard-snapshot.js
+```
+
+Or, if you have the board files, drop them into `seed-data/` and seed:
+
+```bash
+npm run seed:reset                # drop + load the four boards and the databoard
+```
+
+## What is not in this repository
+
+The four finance boards, the weekly databoard, the original HTML boards and the operating-report
+PDF all carry real school figures, so they are handed over privately. Held back with them: the
+acceptance suite that checks the roll-up, reconciliation and consolidation to the dollar, and the
+PDF parser test. Restoring the handover puts each file back where it belongs and the full suite
+runs. Without it `npm run seed` stops with a message, and `npm test` runs the data-free tests.
 
 ## The rule the code enforces
 
@@ -64,7 +83,7 @@ Query options on finance reads (board, overview, summary, line items, reconcilia
 
 ## Monthly report PDFs
 
-`src/services/pdfReport.ts` parses the "Financial Performance" report exactly as Excel exports it: page 1 gives the Overview categories, surplus and EBIDA (the add-back is EBIDA − surplus); the landscape pages give every account line under its group. Numbers are found by column right edge (Excel right-aligns them, so blanks are simply absent), and labels that wrap are reassembled from the lines above the account code. The report's title decides which school it is for, and an upload from the wrong school's board is refused. Leases and loans are built from the report's amortisation, interest and lease-payment lines, the way the boards always worded them; family debtors are measured off the bars of the page-1 chart against its axis (good to a few hundred dollars, and said so on the board). Commentary, typed debtors and any loan or lease the report has no line for are kept from the board already held for that period (else the latest approved one). The Capital expenditure chart is ignored: on the August 2026 report its bar disagrees with the table. The parser checks each group's lines against the report's own subtotal; the NCS August 2026 report, for instance, hides its Insurance line but includes it in the Administrative total, which shows up as a warning and then as a reconciliation flag. Fixture and tests: `tests/fixtures/`, `tests/pdfReport.test.ts`.
+`src/services/pdfReport.ts` parses the "Financial Performance" report exactly as Excel exports it: page 1 gives the Overview categories, surplus and EBIDA (the add-back is EBIDA − surplus); the landscape pages give every account line under its group. Numbers are found by column right edge (Excel right-aligns them, so blanks are simply absent), and labels that wrap are reassembled from the lines above the account code. The report's title decides which school it is for, and an upload from the wrong school's board is refused. Leases and loans are built from the report's amortisation, interest and lease-payment lines, the way the boards always worded them; family debtors are measured off the bars of the page-1 chart against its axis (good to a few hundred dollars, and said so on the board). Commentary, typed debtors and any loan or lease the report has no line for are kept from the board already held for that period (else the latest approved one). The Capital expenditure chart is ignored: on the August 2026 report its bar disagrees with the table. The parser checks each group's lines against the report's own subtotal; the NCS August 2026 report, for instance, hides its Insurance line but includes it in the Administrative total, which shows up as a warning and then as a reconciliation flag. Fixture and tests: `tests/fixtures/` and `tests/pdfReport.test.ts`, both in the data handover.
 
 ## Wiring the React frontend
 

@@ -11,3 +11,14 @@ dist/
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# real school data — handed over privately, never committed
+handover/
+backend/seed-data/databoard.js
+backend/seed-data/finance-*.js
+backend/tests/acceptance.test.ts
+backend/tests/pdfReport.test.ts
+backend/tests/fixtures/
+docs/source-boards/*.html
+docs/legacy-static-dashboard/data/databoard.js
+docs/legacy-static-dashboard/data/finance-*.js

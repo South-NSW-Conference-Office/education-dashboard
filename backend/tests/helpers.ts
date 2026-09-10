@@ -6,10 +6,14 @@ import type { BoardDocument, DataboardDocument, FinanceInput } from "@/domain/ty
 import { extractBoard, isAddbackLine, isSalaryHostGroup, isSalaryLine } from "@/services/boardDocument";
 
 const DATA_DIR = path.resolve(__dirname, "../seed-data");
+const DATA_FILES = ["schools.js", "databoard.js", "finance-bcc.js", "finance-ncs.js", "finance-ccs.js", "finance-ccs-elc.js"];
+
+/** The board files hold real school figures, so they ship separately — see backend/README.md. */
+export const hasSeedData = () => DATA_FILES.every((f) => fs.existsSync(path.join(DATA_DIR, f)));
 
 export function loadData() {
   const w: Record<string, unknown> = {};
-  for (const f of ["schools.js", "databoard.js", "finance-bcc.js", "finance-ncs.js", "finance-ccs.js", "finance-ccs-elc.js"]) {
+  for (const f of DATA_FILES) {
     vm.runInNewContext(fs.readFileSync(path.join(DATA_DIR, f), "utf8"), { window: w });
   }
   const d = w.SNSW_DATA as { finance: Record<string, BoardDocument>; databoard: DataboardDocument };

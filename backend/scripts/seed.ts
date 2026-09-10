@@ -16,10 +16,19 @@ import { saveBoard } from "../src/services/databoard";
 import { getOrg } from "../src/services/structure";
 
 const DATA_DIR = path.resolve(__dirname, "../seed-data");
+const DATA_FILES = ["schools.js", "databoard.js", "finance-bcc.js", "finance-ncs.js", "finance-ccs.js", "finance-ccs-elc.js"];
 
 function loadDataFiles(): { schools: Array<Record<string, string>>; finance: Record<string, BoardDocument>; databoard: DataboardDocument } {
+  const missing = DATA_FILES.filter((f) => !fs.existsSync(path.join(DATA_DIR, f)));
+  if (missing.length) {
+    throw new Error(
+      `seed-data is missing ${missing.join(", ")}.\n` +
+        "The board files hold real school figures, so they are not in this repository — they come with the\n" +
+        "data handover, alongside a mongosh snapshot you can restore instead of seeding. See backend/README.md.",
+    );
+  }
   const w: Record<string, unknown> = {};
-  for (const f of ["schools.js", "databoard.js", "finance-bcc.js", "finance-ncs.js", "finance-ccs.js", "finance-ccs-elc.js"]) {
+  for (const f of DATA_FILES) {
     vm.runInNewContext(fs.readFileSync(path.join(DATA_DIR, f), "utf8"), { window: w });
   }
   const data = w.SNSW_DATA as { finance: Record<string, BoardDocument>; databoard: DataboardDocument };
