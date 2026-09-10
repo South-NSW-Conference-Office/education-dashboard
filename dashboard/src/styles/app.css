@@ -29,8 +29,9 @@ code,.mono,.code{font-family:var(--font-mono)}
   background:linear-gradient(180deg,rgba(24,27,33,.82) 0%,rgba(15,17,21,.9) 100%);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border-right:1px solid rgba(255,255,255,.06)}
 .brand{display:flex;align-items:center;gap:12px;padding:18px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
 .brand img{display:block;background:#fff;border-radius:2px;padding:3px}
-.brand .brand-snsw{height:40px;width:auto} .brand .brand-ae{height:34px;width:auto}
-.brand .brand-rule{width:1px;height:28px;background:rgba(255,255,255,.18)}
+.brand .brand-ae{height:40px;width:auto}
+.brand-text b{display:block;color:#fff;font-size:.94rem;letter-spacing:-.01em;line-height:1.1}
+.brand-text span{display:block;font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--side-text-dim);margin-top:3px}
 .sidebar nav{flex:1;overflow-y:auto;padding:10px 10px 20px}
 .nav-group{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--side-text-dim);font-weight:700;padding:16px 10px 6px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--side-text);font-weight:500;font-size:.84rem;margin-bottom:2px;border:1px solid transparent}

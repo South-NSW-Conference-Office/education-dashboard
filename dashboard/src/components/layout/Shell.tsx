@@ -44,9 +44,8 @@ function Sidebar() {
   return (
     <aside className="sidebar" aria-label="Boards">
       <div className="brand">
-        <img src="/logo-snsw.jpg" alt="SNSW" className="brand-snsw" />
-        <span className="brand-rule" />
         <img src="/logo-adventist-education.png" alt="Adventist Education" className="brand-ae" />
+        <div className="brand-text"><b>SNSW</b><span>Dashboards</span></div>
       </div>
       <nav>
         <div className="nav-group">Education</div>
