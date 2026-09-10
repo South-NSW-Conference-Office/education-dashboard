@@ -35,7 +35,9 @@ export function Dot({ colour, title }: { colour: Light | "blue" | "muted"; title
 export function Chip({ colour, children, title, className }: { colour: Light | "blue" | "gold"; children: ReactNode; title?: string; className?: string }) {
   return <span className={cx("chip", `chip-${colour}`, className)} title={title}>{children}</span>;
 }
-export function Badge({ children, tone = "blue", title }: { children: ReactNode; tone?: "blue" | "amber" | "muted"; title?: string }) {
+/** A small label; with `onClick` it is a button that looks the same, for a badge that leads somewhere. */
+export function Badge({ children, tone = "blue", title, onClick }: { children: ReactNode; tone?: "blue" | "amber" | "muted"; title?: string; onClick?: () => void }) {
+  if (onClick) return <button type="button" className={`badge badge-${tone} badge-btn`} title={title} onClick={onClick}>{children}</button>;
   return <span className={`badge badge-${tone}`} title={title}>{children}</span>;
 }
 /** Traffic light. A button while editable (click cycles), a labelled span otherwise. */
@@ -96,6 +98,28 @@ export function SaveBar({ label, discardLabel = "Discard", saving, onSaveDraft, 
           <Button onClick={onSaveDraft} disabled={saving}>Save draft</Button>
           <Button variant="primary" onClick={onPublish} disabled={saving}>Save &amp; publish</Button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- modal ---------- */
+/** A dialog over the page. Solid, like the save bar: one glass layer per level. Escape or the backdrop closes it. */
+export function Modal({ title, children, footer, onClose, wide }: { title: ReactNode; children: ReactNode; footer?: ReactNode; onClose: () => void; wide?: boolean }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className={cx("modal", wide && "modal-wide")} role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <header className="modal-head">
+          <h2 id="modal-title">{title}</h2>
+          <button type="button" className="rowbtn no" title="Close" aria-label="Close" onClick={onClose}>✕</button>
+        </header>
+        <div className="modal-body">{children}</div>
+        {footer && <footer className="modal-foot">{footer}</footer>}
       </div>
     </div>
   );

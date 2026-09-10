@@ -1,5 +1,6 @@
 /** Request validation (Zod). Loose on purpose where the frontend sends extra, derived fields — those are ignored on write. */
 import { z } from "zod";
+import { SOURCE_SYSTEMS } from "@/domain/types";
 
 const num = z.coerce.number().default(0);
 const line = z.object({ code: z.string().default(""), label: z.string().min(1), budget: num, actual: num, annualBudget: num, eoyEstimate: num }).passthrough();
@@ -50,7 +51,7 @@ export const databoardSchema = z.object({
 
 export const importCreateSchema = z.object({
   unit: z.string().min(1),
-  sourceSystem: z.enum(["MANUAL", "MYOB", "SYNERGETIC", "HUBWORKS"]).default("MANUAL"),
+  sourceSystem: z.enum(SOURCE_SYSTEMS).default("MANUAL"),
   fileName: z.string().optional(),
   board: boardDocumentSchema,
 });

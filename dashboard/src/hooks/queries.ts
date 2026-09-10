@@ -42,6 +42,14 @@ export function useApproveVersion(unit: string) {
   const invalidate = useInvalidateFinance();
   return useMutation({ mutationFn: (versionId: string) => api.approve(unit, versionId), onSuccess: () => invalidate(unit) });
 }
+/** Reading the PDF writes nothing a screen shows, so only publishing invalidates. */
+export function useUploadReportPdf(unit: string) {
+  return useMutation({ mutationFn: (file: File) => api.uploadReportPdf(unit, file) });
+}
+export function usePublishImport(unit: string) {
+  const invalidate = useInvalidateFinance();
+  return useMutation({ mutationFn: ({ id, approve }: { id: string; approve: boolean }) => api.publishImport(id, approve), onSuccess: () => invalidate(unit) });
+}
 export function useSaveDataboard() {
   const qc = useQueryClient();
   return useMutation({

@@ -10,6 +10,8 @@ import { toMinor } from "@/lib/money";
 export const GROUP_ALIASES: Record<string, string[]> = {
   PROPERTY_EXPENSES: ["Property expenses", "Occupancy expenses"],
   CAPITAL_EXPENDITURE: ["Capital expenditure", "Capital expenses"],
+  OTHER_INCOME: ["Other income", "Other incomes"],                          // page 1 of the operating report says "Other incomes"
+  ADMINISTRATIVE_EXPENSES: ["Administrative expenses", "Administrative expense"], // its detail pages say "Administrative expense"
 };
 
 export const slug = (s: string) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase();

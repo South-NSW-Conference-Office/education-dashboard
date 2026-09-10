@@ -19,7 +19,7 @@ export type Section = (typeof SECTIONS)[number];
 export const RATINGS = ["GREEN", "AMBER", "RED"] as const;
 export type Rating = (typeof RATINGS)[number];
 
-export const SOURCE_SYSTEMS = ["MANUAL", "MYOB", "SYNERGETIC", "HUBWORKS"] as const;
+export const SOURCE_SYSTEMS = ["MANUAL", "PDF_REPORT", "MYOB", "SYNERGETIC", "HUBWORKS"] as const;
 export type SourceSystem = (typeof SOURCE_SYSTEMS)[number];
 
 export const UNIT_TYPES = ["CONFERENCE", "SCHOOL", "EARLY_LEARNING_CENTRE"] as const;

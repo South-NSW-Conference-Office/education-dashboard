@@ -55,6 +55,11 @@ Query options on finance reads: `?period=June 2026` and `?versionMode=DRAFT` (ed
 | `POST …/reconciliations/{id}/resolve` | `{ status: "RESOLVED" \| "WAIVED", explanation }` |
 | `PUT /api/v1/databoard/{weekEnding}` | raw fields; `?publish=true` |
 | `POST /api/v1/imports` → `POST /api/v1/imports/{id}/publish?approve=true` | validate a board document, then turn it into a version (the path the MYOB / Synergetic / Hubworks jobs will use) |
+| `POST /api/v1/imports/pdf` (multipart: `file`, `unit`) | read the monthly operating-report PDF into a board document and validate it; returns the parsed board, warnings and notes for a preview, then the same `…/publish` call above makes it a draft or approved version. `?publish=true&approve=true` does it in one step |
+
+## Monthly report PDFs
+
+`src/services/pdfReport.ts` parses the "Financial Performance" report exactly as Excel exports it: page 1 gives the Overview categories, surplus and EBIDA (the add-back is EBIDA − surplus); the landscape pages give every account line under its group. Numbers are found by column right edge (Excel right-aligns them, so blanks are simply absent), and labels that wrap are reassembled from the lines above the account code. The report's title decides which school it is for, and an upload from the wrong school's board is refused. Leases and loans are built from the report's amortisation, interest and lease-payment lines, the way the boards always worded them; family debtors are measured off the bars of the page-1 chart against its axis (good to a few hundred dollars, and said so on the board). Commentary, typed debtors and any loan or lease the report has no line for are kept from the board already held for that period (else the latest approved one). The Capital expenditure chart is ignored: on the August 2026 report its bar disagrees with the table. The parser checks each group's lines against the report's own subtotal; the NCS August 2026 report, for instance, hides its Insurance line but includes it in the Administrative total, which shows up as a warning and then as a reconciliation flag. Fixture and tests: `tests/fixtures/`, `tests/pdfReport.test.ts`.
 
 ## Wiring the React frontend
 
@@ -62,4 +67,4 @@ Query options on finance reads: `?period=June 2026` and `?versionMode=DRAFT` (ed
 
 ## Not yet
 
-Users and roles, file parsing for uploaded workbooks, the three sync jobs, inter-entity eliminations, obligation schedules. All have a home in the models already.
+Users and roles, the three sync jobs, inter-entity eliminations, obligation schedules, and reports in other layouts than the current Excel export (the ELC's, if it differs). All have a home in the models already.

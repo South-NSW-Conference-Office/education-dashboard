@@ -30,6 +30,23 @@ export interface Board {
 }
 export interface VersionInfo { id: string; versionNo: number; status: BoardMeta["status"]; placeholder: boolean; period?: string | null; createdAt: string | null; updatedAt: string | null; approvedAt: string | null; notes: string | null }
 
+/** A board as parsed from an uploaded operating report: page-1 categories as typed, before any roll-up. */
+export interface ImportedBoard {
+  meta: { asAt: string; unit?: string; source?: string };
+  addback: Board["addback"]; priorYear: Board["priorYear"]; loans: Obligation[]; leases: Obligation[]; comments: Board["comments"];
+  income: Category[]; expenditure: Category[]; details: Board["details"];
+}
+export interface ImportBatch { id: string; sourceSystem: string; fileName: string | null; status: "RECEIVED" | "VALIDATED" | "PUBLISHED" | "FAILED" | "REJECTED"; unit: string | null; period: string | null; reportVersion: string | null; createdAt: string | null }
+export interface PdfImport {
+  import: ImportBatch;
+  board: ImportedBoard;
+  detected: { unitName: string | null; unitCode: string | null; period: string | null };
+  warnings: string[]; notes: string[]; errors: string[];
+  lines: number;
+  version: VersionInfo | null;
+}
+export interface PublishedImport { import: ImportBatch; version: VersionInfo; warnings: string[] }
+
 export interface Kpi { actual: number; budget: number; variance: number; colour: Light }
 export interface Overview {
   context: BoardMeta;

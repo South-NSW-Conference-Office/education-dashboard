@@ -110,6 +110,8 @@ code,.mono,.code{font-family:var(--font-mono)}
 .banner-red{background:var(--red-soft);border-color:var(--red);color:var(--red-text)}
 .badge{display:inline-block;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:var(--radius-pill);vertical-align:middle;margin-left:6px}
 .badge-amber{background:var(--amber-soft);color:var(--amber-text)} .badge-blue{background:var(--accent-soft);color:var(--accent)} .badge-muted{background:var(--surface-2);color:var(--muted)}
+.badge-btn{border:1px solid transparent;cursor:pointer;font-family:inherit;line-height:1.5}
+.badge-btn:hover,.badge-btn:focus-visible{border-color:currentColor;text-decoration:underline;outline:none}
 .toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:60}
 .toast{background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:var(--radius-pill);font-size:.84rem;box-shadow:var(--shadow);max-width:80vw}
 .toast.warn{background:var(--red);color:#fff}
@@ -239,6 +241,22 @@ table.ftable{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-n
 .pill-pencil{margin-left:6px;padding:0 6px;font-size:.72rem;background:transparent}
 .pill .rowacts{display:inline-flex;margin-left:6px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---------- modal (solid, like the save bar: one glass layer per level) ---------- */
+.modal-backdrop{position:fixed;inset:0;z-index:55;background:rgba(15,17,21,.48);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow);width:100%;max-width:640px;max-height:92vh;display:flex;flex-direction:column;min-width:0}
+.modal-wide{max-width:980px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.modal-head h2{margin:0;font-size:1rem;overflow-wrap:anywhere}
+.modal-body{padding:16px 20px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.modal-foot{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line)}
+.modal-foot .hint{margin-right:auto}
+.hint{font-size:.78rem;color:var(--muted);margin:0}
+.import-meta{display:flex;flex-wrap:wrap;gap:8px}
+.banner ul{margin:6px 0 0 18px;padding:0} .banner li{margin:2px 0}
+.notes{font-size:.78rem;color:var(--muted);margin:0;padding-left:18px} .notes li{margin:2px 0}
+.table-scroll{overflow-x:auto} .table-scroll .ftable{min-width:640px}
+.delta-up{color:var(--green-text)} .delta-down{color:var(--red-text)}
 
 /* Sticky save bar — sits in the content column so it never runs under the sidebar. */
 /* Solid, not glass: it sits over the cards, and the house rule is one glass layer per level. */

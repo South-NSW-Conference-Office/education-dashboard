@@ -3,13 +3,14 @@
  * figures are entered. Editing works on a copy of the board document and saves through PUT /board:
  * on Details a line's pencil opens that copy silently, on Overview the Edit board button does.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
 import { useBoard, useOverview, useSaveBoard, useUnits, useVersions } from "@/hooks/queries";
 import { PageHeader, Pill } from "@/components/layout/PageHeader";
 import { Badge, Banner, Button, ErrorState, Loading, SaveBar, useToast } from "@/components/ui";
 import { OverviewTab } from "@/features/finance/OverviewTab";
 import { DetailsTab } from "@/features/finance/DetailsTab";
+import { ImportPdfDialog } from "@/features/finance/ImportPdfDialog";
 import { clone, countChangedRows } from "@/lib/editing";
 import type { Board } from "@/lib/types";
 import { when } from "@/lib/format";
@@ -24,19 +25,25 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const [hideZeros, setHideZeros] = useState(true);
   // The period's pre-edit value, held so its own cancel can put it back. null = not being edited.
   const [periodEdit, setPeriodEdit] = useState<string | null>(null);
+  // An operating-report PDF chosen for upload; the dialog reads it and offers draft or publish.
+  const [pdf, setPdf] = useState<File | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  // When editing began: only a draft fetched after that is taken, never a stale cached copy.
+  const [openedAt, setOpenedAt] = useState(0);
 
   // Readers see the latest approved version; an editor opens (or continues) the draft.
   const approved = useBoard(unit, "LATEST_APPROVED");
   const draftBoard = useBoard(unit, "DRAFT", editing);
-  const overview = useOverview(unit, "LATEST_APPROVED");
+  // The KPIs follow whatever board is on screen: the draft while editing (falls back to approved if none), else approved.
+  const overview = useOverview(unit, editing ? "DRAFT" : "LATEST_APPROVED");
   const versions = useVersions(unit);
   const save = useSaveBoard(unit);
   const toast = useToast();
 
-  useEffect(() => { setEditing(false); setDraft(null); setBaseline(null); setPeriodEdit(null); }, [unit]);
+  useEffect(() => { setEditing(false); setDraft(null); setBaseline(null); setPeriodEdit(null); setPdf(null); }, [unit]);
   useEffect(() => {
-    if (editing && draftBoard.data && !draft) { setDraft(clone(draftBoard.data)); setBaseline(clone(draftBoard.data)); }
-  }, [editing, draftBoard.data, draft]);
+    if (editing && draftBoard.data && !draft && draftBoard.dataUpdatedAt >= openedAt) { setDraft(clone(draftBoard.data)); setBaseline(clone(draftBoard.data)); }
+  }, [editing, draftBoard.data, draftBoard.dataUpdatedAt, draft, openedAt]);
 
   // Line edits get a count; everything else typed on the Overview just reads as unsaved.
   const changedLines = draft && baseline ? countChangedRows(baseline, draft) : 0;
@@ -55,7 +62,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const editable = editing && !!draft;
   const openDraft = versions.data?.find((v) => v.status === "DRAFT" || v.status === "IN_REVIEW");
 
-  const onBeginEdit = () => setEditing(true);
+  const onBeginEdit = () => { setOpenedAt(Date.now()); setEditing(true); };
   const endSession = () => { setEditing(false); setDraft(null); setBaseline(null); setPeriodEdit(null); };
 
   const doSave = async (publish: boolean) => {
@@ -96,11 +103,16 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
           </Pill>
           <Pill label="Version" title={board.meta.approvedAt ? `Approved ${when(board.meta.approvedAt)}` : `Last saved ${when(board.meta.lastSaved)}`}>
             v{board.meta.version} · {status === "APPROVED" ? "approved" : status.toLowerCase().replace("_", " ")}
-            {!editing && openDraft && <> <Badge tone="amber" title="A draft is open; editing anything continues it">draft v{openDraft.versionNo} open</Badge></>}
+            {!editing && openDraft && <> <Badge tone="amber" title={`Open draft v${openDraft.versionNo}${openDraft.period ? ` (${openDraft.period})` : ""} to review, edit and publish it`} onClick={onBeginEdit}>draft v{openDraft.versionNo}{openDraft.period ? ` · ${openDraft.period}` : ""} · open ›</Badge></>}
             {dirty && <> <Badge tone="amber" title="Edited but not saved">unsaved</Badge></>}
           </Pill>
         </>}
-        actions={<Button onClick={() => window.print()}>Print</Button>}
+        actions={<>
+          <Button onClick={() => fileInput.current?.click()} title="Read the monthly operating report (PDF) into this board">Upload report PDF</Button>
+          <input ref={fileInput} type="file" accept="application/pdf,.pdf" className="sr-only" tabIndex={-1} aria-hidden="true"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); e.target.value = ""; }} />
+          <Button onClick={() => window.print()}>Print</Button>
+        </>}
         tabs={<>
           <div className="tabs">
             <NavLink end to={`/finance/${unit}`} className="tab">Overview</NavLink>
@@ -124,6 +136,11 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
           label={dirty ? (changedLines > 0 ? `${changedLines} line${changedLines === 1 ? "" : "s"} edited` : "Unsaved changes") : `Draft v${board.meta.version} saved, not published`}
           discardLabel={dirty ? "Discard" : "Close"}
           saving={save.isPending} onSaveDraft={() => doSave(false)} onPublish={() => doSave(true)} onDiscard={discard} />
+      )}
+
+      {pdf && (
+        <ImportPdfDialog unit={unit} file={pdf} current={approved.data} versions={versions.data} onClose={() => setPdf(null)}
+          onDone={(message, warning, openDraft) => { toast(message); if (warning) toast(warning, "warn"); setPdf(null); endSession(); if (openDraft) onBeginEdit(); }} />
       )}
 
       <div className="foot">Adventist Education South New South Wales · Figures are indicative — the operating statement remains the authoritative record.</div>
