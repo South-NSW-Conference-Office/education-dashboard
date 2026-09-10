@@ -53,7 +53,7 @@ export function SummaryPage() {
         <p className="fine">Variance is favourable when positive. Combined margin is surplus over income; schools show their EBIDA margin.</p>
       </Card>
 
-      <div className="grid2">
+      <div className="grid2 wide">
         <Card title="Surplus / (deficit) by school — actual vs budget (YTD)">
           <PairedBars isIncome rows={d.schools.map((x) => ({ label: x.name, budget: x.surplus.budget, actual: x.surplus.actual, href: `/finance/${x.unit}` }))} />
         </Card>

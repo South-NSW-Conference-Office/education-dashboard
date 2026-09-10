@@ -39,7 +39,7 @@ export function OverviewTab({ unit, board, overview, editing, onChange }: { unit
         </div>
       )}
 
-      <div className="grid2">
+      <div className="grid2 wide">
         <Card title="Income — actual vs budget (YTD)"><PairedBars isIncome rows={cats.income} /></Card>
         <Card title="Spending — actual vs budget (YTD)"><PairedBars isIncome={false} rows={cats.expenditure} /></Card>
       </div>

@@ -24,6 +24,7 @@ code,.mono,.code{font-family:var(--font-mono)}
 .loading{padding:40px;text-align:center;color:var(--muted)}
 
 /* ---------- shell ---------- */
+:root{--gutter:clamp(14px,2vw,26px);--content-max:1560px}
 .shell{display:flex;min-height:100vh}
 .sidebar{width:var(--sidebar-w);flex-shrink:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:30;color:var(--side-text);
   background:linear-gradient(180deg,rgba(24,27,33,.82) 0%,rgba(15,17,21,.9) 100%);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border-right:1px solid rgba(255,255,255,.06)}
@@ -48,11 +49,17 @@ code,.mono,.code{font-family:var(--font-mono)}
 .theme-btn{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--side-text);font:inherit;font-size:.78rem;font-weight:600;padding:8px 10px;border-radius:8px;cursor:pointer}
 .theme-btn:hover{border-color:rgba(255,255,255,.3);color:#fff}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
-.content{padding:22px 26px 40px;display:flex;flex-direction:column;gap:20px;max-width:1280px;width:100%}
+/* Named container: every grid below sizes itself from this column, not the viewport,
+   so the sidebar's width stops skewing each breakpoint. */
+.content{container:page/inline-size;padding:clamp(14px,1.6vw,22px) var(--gutter) 40px;display:flex;flex-direction:column;gap:clamp(14px,1.5vw,20px);max-width:var(--content-max);width:100%;margin-inline:auto}
 .scrim{display:none}
 
 /* ---------- top bar (always light glass, hairline, no shadow) ---------- */
-.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:10px 26px;border-bottom:1px solid var(--glass-border);background:var(--glass);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%)}
+/* padding-inline tracks the centred content column so the search and avatar stay
+   flush with the cards below on wide displays. */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:10px var(--gutter);
+  padding-inline:max(var(--gutter),calc((100% - var(--content-max))/2 + var(--gutter)));
+  border-bottom:1px solid var(--glass-border);background:var(--glass);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%)}
 .search-wrap{flex:1;max-width:520px}
 .search{width:100%;border:1px solid var(--glass-border);border-radius:var(--radius-pill);padding:7px 14px;font:inherit;font-size:.82rem;background:color-mix(in srgb,var(--surface) 55%,transparent);color:var(--ink)}
 .search:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
@@ -108,14 +115,17 @@ code,.mono,.code{font-family:var(--font-mono)}
 .toast.warn{background:var(--red);color:#fff}
 
 /* ---------- cards & grids ---------- */
-.card{background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(160%);-webkit-backdrop-filter:blur(var(--blur)) saturate(160%);border:1px solid var(--glass-border);border-radius:var(--radius);box-shadow:var(--glass-shadow);padding:16px 20px}
+.card{background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(160%);-webkit-backdrop-filter:blur(var(--blur)) saturate(160%);border:1px solid var(--glass-border);border-radius:var(--radius);box-shadow:var(--glass-shadow);padding:16px clamp(14px,1.6vw,20px);
+  container:card/inline-size}
 .card-solid{background:var(--glass-strong)}
 .card h2{font-size:1rem;font-weight:700;margin-bottom:12px}
 .card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
 .card-head h2{margin:0} .card-tools{display:flex;gap:8px;align-items:center}
 .accent-blue{border-left:4px solid var(--accent)} .accent-gold{border-left:4px solid var(--gold)} .accent-amber{border-left:4px solid var(--amber)}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* One column by default; the @container rules at the foot widen them. min-width:0
+   lets a track shrink past its contents instead of pushing the page sideways. */
+.grid4,.grid2,.schools-grid{display:grid;grid-template-columns:1fr;gap:16px}
+.grid4>*,.grid2>*,.schools-grid>*{min-width:0}
 .scroll-x{overflow-x:auto}
 .intro-card h2{margin-bottom:4px}
 .section{display:flex;flex-direction:column;gap:12px}
@@ -125,9 +135,12 @@ code,.mono,.code{font-family:var(--font-mono)}
 .foot{text-align:center;color:var(--faint);font-size:.74rem;line-height:1.6;margin-top:10px}
 
 /* ---------- KPI tiles ---------- */
-.kpi{padding:16px 18px}
+.kpi{padding:16px clamp(14px,1.6vw,18px)}
 .kpi-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:flex;align-items:center;gap:8px}
 .kpi-value{font-size:1.65rem;font-weight:800;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+/* Figure scales with the tile it sits in, so a narrow tile shrinks the number
+   rather than clipping or wrapping it. */
+.kpi-value{font-size:clamp(1.3rem,.85rem + 4.4cqi,1.65rem)}
 .kpi-of{font-size:.9rem;color:var(--faint);font-weight:600}
 .kpi-sub{font-size:.76rem;color:var(--muted);margin-top:4px;line-height:1.4}
 .kpi-delta{margin-top:8px}
@@ -165,15 +178,16 @@ ul.recon{margin:10px 0 0;padding-left:18px;font-size:.84rem;display:flex;flex-di
 .legend span{display:flex;align-items:center;gap:6px} .legend-note{margin-left:auto;font-style:italic;color:var(--faint)}
 .swatch{width:12px;height:12px;border-radius:3px;display:inline-block;flex-shrink:0}
 .sw-actual{background:var(--accent)} .sw-budget{background:var(--gold)}
-.bar-row{display:grid;grid-template-columns:minmax(120px,150px) 1fr 92px 84px;align-items:center;gap:10px;font-size:.8rem;padding:6px 4px;border-radius:8px}
+/* Stacked by default; the row form only kicks in once the card is wide enough to
+   leave the track a usable length (see the @container rules at the foot). */
+.bar-row{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:4px;font-size:.8rem;padding:6px 4px;border-radius:8px}
 .bar-row:hover{background:var(--accent-softer)}
-.bar-row.simple{grid-template-columns:90px 1fr 92px}
-.bar-label{color:var(--ink);font-weight:500;line-height:1.25}
-.bar-track{display:flex;flex-direction:column;gap:2px}
+.bar-label{color:var(--ink);font-weight:500;line-height:1.25;min-width:0;overflow-wrap:anywhere}
+.bar-track{display:flex;flex-direction:column;gap:2px;min-width:0}
 .bar{height:10px;border-radius:0 4px 4px 0;min-width:2px}
 .bar-actual{background:var(--accent)} .bar-budget{background:var(--gold)}
-.bar-val{display:flex;flex-direction:column;text-align:right;font-size:.72rem;color:var(--muted);line-height:1.35;font-variant-numeric:tabular-nums}
-.bar-var{text-align:right}
+.bar-val{display:flex;gap:10px;text-align:left;font-size:.72rem;color:var(--muted);line-height:1.35;font-variant-numeric:tabular-nums}
+.bar-var{text-align:left}
 
 /* ---------- tables ---------- */
 table.ftable{width:100%;border-collapse:collapse;font-size:.84rem;font-variant-numeric:tabular-nums}
@@ -216,7 +230,7 @@ input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;bord
 .item-card .row{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .item-card .notes{font-size:.74rem;color:var(--muted)}
 .pay-col{text-align:right;flex-shrink:0} .pay{font-weight:700;color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums} .freq{font-size:.72rem;color:var(--muted)}
-.looking{display:grid;grid-template-columns:1fr 2fr;gap:20px;align-items:start}
+.looking{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
 .mini-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
 
 /* ---------- databoard ---------- */
@@ -231,13 +245,12 @@ table.matrix{width:100%;border-collapse:collapse;min-width:680px}
 .matrix td.school-name small{display:block;font-weight:500;color:var(--muted);font-size:.72rem}
 .cell-note{display:block;font-size:.68rem;color:var(--muted);margin-top:4px;max-width:140px;margin-left:auto;margin-right:auto;line-height:1.3}
 .cell-note-input{display:block;width:120px;margin:6px auto 0;font:inherit;font-size:.7rem;border:1px solid var(--line-strong);border-radius:6px;padding:3px 6px;text-align:center;background:var(--surface);color:var(--ink)}
-.cash-cell{padding:16px 18px;min-width:0}
+.cash-cell{padding:16px clamp(14px,1.6vw,18px);min-width:0}
 .cash-cell label{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;display:block}
-.cash-cell .fig{font-size:1.65rem;font-weight:800;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+.cash-cell .fig{font-size:clamp(1.3rem,.85rem + 4.4cqi,1.65rem);font-weight:800;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
 .cash-cell .delta{font-size:.76rem;font-weight:600;margin-top:2px;color:var(--muted)}
 .cash-cell.kpi-feature label,.cash-cell.kpi-feature .delta{color:rgba(255,255,255,.78)}
 .cash-cell.kpi-feature input.txt{background:rgba(255,255,255,.14);color:#fff;border-color:rgba(255,255,255,.35)}
-.schools-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .school-card{display:flex;flex-direction:column;overflow:hidden;padding:0}
 .school-card .head{padding:14px 16px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .school-card .head>div{flex:1;min-width:0}
@@ -270,19 +283,57 @@ button.rating{cursor:pointer}
 .star{color:var(--gold);font-size:1.05rem;flex-shrink:0}
 .add-row{padding:10px 14px}
 
-/* ---------- responsive ---------- */
-@media (max-width:1180px){ .grid4{grid-template-columns:1fr 1fr} .schools-grid{grid-template-columns:1fr 1fr} }
+/* ---------- responsive ----------
+   Layout is driven by container queries: `page` is the content column and `card`
+   is the individual card, so a panel reflows on the space it actually has rather
+   than on the window width (the sidebar takes 200–264px of that window). Media
+   queries are left only for things that genuinely are window-scoped: the sidebar
+   drawer and the top bar. */
+@container page (min-width:500px){ .grid4{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@container page (min-width:560px){ .schools-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@container page (min-width:640px){ .grid2{grid-template-columns:repeat(2,minmax(0,1fr))} }
+/* .wide marks a pair whose panels need real width (charts) before splitting. */
+.grid2.wide{grid-template-columns:1fr}
+@container page (min-width:900px){ .grid2.wide{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@container page (min-width:900px){ .grid4{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@container page (min-width:960px){ .schools-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+
+@container card (min-width:400px){
+  /* Label and track share what's left after the two number columns, so the track
+     never collapses to a sliver the way a fixed 1fr did. */
+  .bar-row{grid-template-columns:minmax(84px,1fr) minmax(84px,2.4fr) 82px 86px;gap:10px}
+  .bar-row.simple{grid-template-columns:minmax(80px,1fr) minmax(84px,2.4fr) 82px}
+  .bar-val{flex-direction:column;gap:0;text-align:right}
+  .bar-var{text-align:right}
+}
+@container card (min-width:560px){ .looking{grid-template-columns:1fr 2fr} }
+
 @media (max-width:900px){
+  /* Off-canvas drawer: no longer stealing content width, so back to full size. */
+  :root{--sidebar-w:264px}
   .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .2s}
   body.drawer-open .sidebar{transform:none}
   body.drawer-open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25}
   .icon-btn{display:inline-block}
-  .topbar{padding:10px 16px} .content{padding:16px}
-  .grid2,.looking{grid-template-columns:1fr}
+  .topbar{padding:10px 16px}
   .who{display:none}
 }
-@media (max-width:600px){ .grid4,.schools-grid{grid-template-columns:1fr} .bar-row{grid-template-columns:1fr;gap:4px} .bar-val{flex-direction:row;gap:10px;text-align:left} }
+@media (max-width:600px){
+  .topbar{gap:10px;padding:8px 14px}
+  .ph-title h1{font-size:1.35rem}
+  .pill{min-width:0;flex:1 1 auto}
+  .ph-actions{width:100%}
+  .ph-actions .btn{flex:1;justify-content:center}
+  .tab{padding:10px 12px}
+}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+
+/* Fallback for engines without container queries: keep the old viewport steps. */
+@supports not (container-type:inline-size){
+  @media (min-width:820px){ .grid4,.schools-grid{grid-template-columns:repeat(2,minmax(0,1fr))} .grid2{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  @media (min-width:1280px){ .grid4,.schools-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  @media (min-width:1000px){ .bar-row{grid-template-columns:minmax(84px,1fr) minmax(84px,2.4fr) 82px 86px;gap:10px} .bar-val{flex-direction:column;gap:0;text-align:right} .bar-var{text-align:right} .looking{grid-template-columns:1fr 2fr} }
+}
 
 /* ---------- print ---------- */
 @media print{
