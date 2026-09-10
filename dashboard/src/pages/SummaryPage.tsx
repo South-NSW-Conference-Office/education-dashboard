@@ -2,8 +2,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSummary, useUnits } from "@/hooks/queries";
 import { PageHeader, Pill } from "@/components/layout/PageHeader";
 import { PairedBars } from "@/components/charts";
-import { Badge, Card, Chip, Dot, ErrorState, Kpi, Loading } from "@/components/ui";
+import { PeriodPicker } from "@/components/PeriodPicker";
+import { Badge, Button, Card, Chip, Dot, ErrorState, Kpi, Loading } from "@/components/ui";
+import { TimelineCard } from "@/features/finance/TimelineCard";
+import { usePeriod } from "@/hooks/usePeriod";
 import { compact$, fmt, fmt$, pct } from "@/lib/format";
+import { LATEST } from "@/lib/period";
 import type { Light } from "@/lib/types";
 
 const varColour = (v: number, base: number): Light => (v >= 0 ? "green" : v > -0.05 * Math.abs(base || 1) ? "amber" : "red");
@@ -12,16 +16,33 @@ export function SummaryPage() {
   const s = useSummary();
   const units = useUnits();
   const nav = useNavigate();
-  if (s.isLoading) return <Loading what="finance summary" />;
+  const { selection, setSelection, label } = usePeriod();
+  if (s.isPending) return <Loading what="finance summary" />;
   if (s.error || !s.data) return <ErrorState error={s.error} retry={() => s.refetch()} />;
   const d = s.data, t = d.totals;
   const colour = new Map((units.data ?? []).map((u) => [u.code, u.colour]));
+  // Under Latest, All time or a range the boards may sit at different months: say which.
+  const resolved = d.context.periods.join(" / ");
+  const header = (
+    <PageHeader eyebrow="Finance · All schools" title="Finance summary"
+      pills={<><PeriodPicker label="Boards as at" note={selection.kind !== "month" && resolved ? resolved : undefined} /><Pill label="Boards">{d.context.boards} of {units.data?.length ?? d.context.boards}</Pill></>} />
+  );
+  if (!d.context.boards) return (
+    <>
+      {header}
+      <Card accent="amber" className="noboard">
+        <h2 className="h-amber">Nothing reported for {label}</h2>
+        <p className="intro">No school has an approved finance board {selection.kind === "month" ? `for ${label}` : `inside ${label}`}. Choose another month above, or go back to the latest boards.</p>
+        <div className="acts"><Button variant="primary" onClick={() => setSelection(LATEST)}>Show latest boards</Button></div>
+      </Card>
+    </>
+  );
   return (
     <>
-      <PageHeader eyebrow="Finance · All schools" title="Finance summary"
-        pills={<><Pill label="Boards as at">{d.context.periods.join(" / ")}</Pill><Pill label="Boards">{d.context.boards} of {units.data?.length ?? d.context.boards}</Pill></>} />
+      {header}
 
       {d.context.mixedPeriods && <div className="banner banner-blue">Boards are as at different months, so the combined figures mix periods until every school reports the same month.</div>}
+      {selection.kind === "month" && d.context.boards < (units.data?.length ?? 0) && <div className="banner banner-blue">Only {d.context.boards} of {units.data?.length} schools have an approved board for {label}; the combined figures cover those.</div>}
 
       <div className="grid4">
         <Kpi feature label="Combined surplus (YTD)" value={compact$(t.surplus.actual)} sub={`Budget ${compact$(t.surplus.budget)}`} delta={`${fmt$(Math.abs(t.surVar))} ${t.surVar >= 0 ? "ahead" : "behind"}`} />
@@ -66,6 +87,8 @@ export function SummaryPage() {
           <p className="fine">The largest unfavourable variances across all boards, by category.</p>
         </Card>
       </div>
+
+      <TimelineCard />
     </>
   );
 }

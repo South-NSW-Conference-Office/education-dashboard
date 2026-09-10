@@ -73,6 +73,18 @@ export async function findPeriodByLabel(label: string): Promise<PeriodDoc | null
 export async function listPeriods(): Promise<PeriodDoc[]> {
   return (await FiscalPeriodModel.find().sort({ startsOn: 1 }).lean()) as unknown as PeriodDoc[];
 }
+/**
+ * The periods between two labels (inclusive), oldest first. Either end may be missing.
+ * A label is validated even when its year has no periods yet, so a typo is a 400 not an empty list.
+ */
+export async function periodsBetween(from?: string | null, to?: string | null): Promise<PeriodDoc[]> {
+  const lo = from ? parsePeriodLabel(from) : null;
+  const hi = to ? parsePeriodLabel(to) : null;
+  const start = lo ? Date.UTC(lo.year, lo.month - 1, 1) : -Infinity;
+  const end = hi ? Date.UTC(hi.year, hi.month, 0) : Infinity;
+  if (start > end) throw badRequest(`The range runs backwards: "${from}" is after "${to}"`);
+  return (await listPeriods()).filter((p) => p.startsOn.getTime() >= start && p.endsOn.getTime() <= end);
+}
 
 export interface Structure { accounts: AccountLite[]; groups: GroupLite[]; mappings: MappingLite[]; metrics: MetricConfig; accountIds: Map<string, Id> }
 

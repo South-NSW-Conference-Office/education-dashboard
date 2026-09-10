@@ -42,15 +42,18 @@ async function snapshotFor(unit: UnitDoc, period: PeriodDoc): Promise<Id> {
   return s!._id as Id;
 }
 
-export async function latestApproved(unit: UnitDoc, period?: PeriodDoc): Promise<VersionDoc | null> {
-  const q: Record<string, unknown> = { operatingUnitId: unit._id, status: "APPROVED" };
-  if (period) q.fiscalPeriodId = period._id;
+/** One period, a set of periods (a range), or undefined for any period. */
+export type PeriodScope = PeriodDoc | PeriodDoc[] | undefined;
+const scopeFilter = (scope: PeriodScope): Record<string, unknown> =>
+  scope === undefined ? {} : Array.isArray(scope) ? { fiscalPeriodId: { $in: scope.map((p) => p._id) } } : { fiscalPeriodId: scope._id };
+
+export async function latestApproved(unit: UnitDoc, scope?: PeriodScope): Promise<VersionDoc | null> {
+  const q: Record<string, unknown> = { operatingUnitId: unit._id, status: "APPROVED", ...scopeFilter(scope) };
   const vs = (await ReportVersionModel.find(q).lean()) as unknown as VersionDoc[];
   return pickLatest(vs);
 }
-export async function openDraft(unit: UnitDoc, period?: PeriodDoc): Promise<VersionDoc | null> {
-  const q: Record<string, unknown> = { operatingUnitId: unit._id, status: { $in: ["DRAFT", "IN_REVIEW"] } };
-  if (period) q.fiscalPeriodId = period._id;
+export async function openDraft(unit: UnitDoc, scope?: PeriodScope): Promise<VersionDoc | null> {
+  const q: Record<string, unknown> = { operatingUnitId: unit._id, status: { $in: ["DRAFT", "IN_REVIEW"] }, ...scopeFilter(scope) };
   const vs = (await ReportVersionModel.find(q).lean()) as unknown as VersionDoc[];
   return pickLatest(vs);
 }

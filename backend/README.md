@@ -42,7 +42,12 @@ Only raw data is written: line items on a **DRAFT** report version, loans, lease
 | `GET /api/v1/finance/{unit}/line-items` | Details tab only |
 | `GET /api/v1/databoard/latest` | raw weekly fields plus derived lights and figures |
 
-Query options on finance reads: `?period=June 2026` and `?versionMode=DRAFT` (editors) or `LATEST_APPROVED` (default).
+Query options on finance reads (board, overview, summary, line items, reconciliations) and on `databoard/latest`: `?period=June 2026` pins one month; `?from=January 2026&to=June 2026` bounds a range (either end optional) and the newest board inside it is the one returned; nothing set means each unit's newest approved board. `?versionMode=DRAFT` (editors) or `LATEST_APPROVED` (default). A month with no board is a 404, not an empty board. For the databoard the period picks the newest weekly board whose week ended on or before the period's end, and its finance figures follow the same period.
+
+| Read | Returns |
+|---|---|
+| `GET /api/v1/periods` | every fiscal month, with the units holding an approved board (`approved`) or an open draft (`drafts`) in it — what the period picker lists |
+| `GET /api/v1/finance/timeline?from&to[&unit]` | month by month inside the range (or everything): each month's boards and combined totals, oldest first |
 
 ## Write paths
 

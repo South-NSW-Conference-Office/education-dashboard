@@ -7,9 +7,13 @@ import { Link } from "react-router-dom";
 import { useDataboard, useSaveDataboard } from "@/hooks/queries";
 import { PageHeader, Pill } from "@/components/layout/PageHeader";
 import { Sparkline, enrolDelta } from "@/components/charts";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { Badge, Banner, Button, Card, Chip, Empty, ErrorState, Loading, NumberInput, SectionHead, TextInput, TrafficLight, nextLight, useToast } from "@/components/ui";
+import { usePeriod } from "@/hooks/usePeriod";
+import { ApiError } from "@/lib/api";
 import { clone } from "@/lib/editing";
 import { compact$, STATUS_LABEL, when } from "@/lib/format";
+import { LATEST } from "@/lib/period";
 import type { Databoard, Light, ListItem } from "@/lib/types";
 
 const COLS = [
@@ -21,11 +25,23 @@ export function DataboardPage() {
   const q = useDataboard();
   const save = useSaveDataboard();
   const toast = useToast();
+  const { selection, setSelection, label } = usePeriod();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Databoard | null>(null);
   useEffect(() => { if (!editing) setDraft(null); }, [editing]);
+  useEffect(() => { setEditing(false); }, [selection]);
 
-  if (q.isLoading) return <Loading what="weekly databoard" />;
+  if (q.isPending) return <Loading what="weekly databoard" />;
+  if (q.error instanceof ApiError && q.error.status === 404) return (
+    <>
+      <PageHeader eyebrow="Education · South New South Wales" title="Weekly education databoard" pills={<PeriodPicker label="Finance as at" />} />
+      <Card accent="amber" className="noboard">
+        <h2 className="h-amber">No databoard as at {label}</h2>
+        <p className="intro">No weekly databoard had been written by the end of {selection.kind === "month" ? label : "that range"}. Choose a later month above, or go back to the latest week.</p>
+        <div className="acts"><Button variant="primary" onClick={() => setSelection(LATEST)}>Show latest week</Button></div>
+      </Card>
+    </>
+  );
   if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
   const d = editing && draft ? draft : q.data;
   const set = (fn: (x: Databoard) => void) => { const c = clone(d); fn(c); setDraft(c); };
@@ -45,6 +61,7 @@ export function DataboardPage() {
         pills={<>
           <Pill label="Week ending">{editing && draft ? <input className="pill-input" value={draft.weekEnding} onChange={(e) => set((x) => { x.weekEnding = e.target.value; })} /> : d.weekEnding}</Pill>
           <Pill label="Status" title={d.lastUpdated ? `Updated ${when(d.lastUpdated)}` : undefined}>{d.status === "PUBLISHED" ? "Published" : "Draft"}</Pill>
+          <PeriodPicker label="Finance as at" disabled={editing} note={selection.kind !== "month" ? financeAsAt(d) : undefined} />
         </>}
         actions={editing ? <>
           <Button variant="primary" onClick={() => doSave(true)} disabled={save.isPending}>Save &amp; publish</Button>
@@ -75,9 +92,11 @@ export function DataboardPage() {
                       const note = r.notes[c.key] ?? "";
                       return (
                         <td key={c.key}>
-                          {derived
-                            ? <TrafficLight colour={st} title={`${STATUS_LABEL[st]} — ${c.key === "overall" ? "worst of the five measures" : "from the finance board"}`} />
-                            : <TrafficLight colour={st} onCycle={editing ? () => set((x) => { (x.matrix[ri].status as Record<string, Light>)[c.key] = nextLight[st]; }) : undefined} />}
+                          {c.key === "finance" && !r.derived.finance
+                            ? <span className="light-none" role="img" aria-label="No finance board for this period" title={`No approved finance board ${selection.kind === "month" ? `for ${label}` : "in this period"}`}>—</span>
+                            : derived
+                              ? <TrafficLight colour={st} title={`${STATUS_LABEL[st]} — ${c.key === "overall" ? "worst of the five measures" : "from the finance board"}`} />
+                              : <TrafficLight colour={st} onCycle={editing ? () => set((x) => { (x.matrix[ri].status as Record<string, Light>)[c.key] = nextLight[st]; }) : undefined} />}
                           {derived && editing && <span className="auto-chip"><Badge tone="blue">auto</Badge></span>}
                           {c.key === "finance" && r.derived.financeVariance != null && (
                             <span className="auto-chip"><Chip colour={r.derived.financeVariance >= 0 ? "green" : "red"} title={`Finance board (${r.derived.asAt}): surplus ${compact$(r.derived.surplus ?? 0)}`}>{r.derived.financeVariance >= 0 ? "+" : "−"}{compact$(Math.abs(r.derived.financeVariance))} vs budget</Chip></span>
@@ -164,6 +183,12 @@ export function DataboardPage() {
       </section>
     </>
   );
+}
+
+/** The months the finance-derived figures come from, e.g. "June 2026 / April 2026". */
+function financeAsAt(d: Databoard): string | undefined {
+  const months = [...new Set(d.schools.map((s) => s.finance?.asAt).filter((x): x is string => !!x))];
+  return months.length ? months.join(" / ") : undefined;
 }
 
 function Metric({ k, v }: { k: string; v: React.ReactNode }) {

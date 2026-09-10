@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useDataboard, useUnits } from "@/hooks/queries";
 import { useTheme } from "@/hooks/useTheme";
+import { PeriodProvider } from "@/hooks/usePeriod";
 import { Dot, SearchProvider, ToastProvider, useSearch } from "../ui";
 import { STATUS_LABEL } from "@/lib/format";
 
@@ -10,7 +11,9 @@ export function Shell() {
   return (
     <ToastProvider>
       <SearchProvider>
-        <ShellInner />
+        <PeriodProvider>
+          <ShellInner />
+        </PeriodProvider>
       </SearchProvider>
     </ToastProvider>
   );

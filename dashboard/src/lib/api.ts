@@ -1,5 +1,6 @@
 /** Typed client for the backend. Every call goes through `send` so errors read the same everywhere. */
-import type { Board, Databoard, Overview, PdfImport, PublishedImport, Summary, Unit, VersionInfo } from "./types";
+import type { Board, Databoard, Overview, PdfImport, Period, PublishedImport, Summary, Timeline, Unit, VersionInfo } from "./types";
+import type { PeriodParams } from "./period";
 
 const BASE = (import.meta.env.VITE_API_BASE ?? "") + "/api/v1";
 
@@ -30,9 +31,12 @@ export type VersionMode = "LATEST_APPROVED" | "DRAFT";
 export const api = {
   health: () => request<{ ok: boolean; mongo: string }>("/health"),
   units: () => request<Unit[]>("/units"),
-  summary: (mode: VersionMode = "LATEST_APPROVED") => request<Summary>(`/finance/summary${q({ versionMode: mode })}`),
-  board: (unit: string, mode: VersionMode = "LATEST_APPROVED", period?: string) => request<Board>(`/finance/${unit}/board${q({ versionMode: mode, period })}`),
-  overview: (unit: string, mode: VersionMode = "LATEST_APPROVED", period?: string) => request<Overview>(`/finance/${unit}/overview${q({ versionMode: mode, period })}`),
+  periods: () => request<Period[]>("/periods"),
+  summary: (mode: VersionMode = "LATEST_APPROVED", period: PeriodParams = {}) => request<Summary>(`/finance/summary${q({ versionMode: mode, ...period })}`),
+  board: (unit: string, mode: VersionMode = "LATEST_APPROVED", period: PeriodParams = {}) => request<Board>(`/finance/${unit}/board${q({ versionMode: mode, ...period })}`),
+  overview: (unit: string, mode: VersionMode = "LATEST_APPROVED", period: PeriodParams = {}) => request<Overview>(`/finance/${unit}/overview${q({ versionMode: mode, ...period })}`),
+  /** Month by month inside a range (or everything): one row per month that has an approved board. */
+  timeline: (period: PeriodParams = {}, unit?: string) => request<Timeline>(`/finance/timeline${q({ from: period.from, to: period.to, unit })}`),
   saveBoard: (unit: string, board: Board, publish: boolean) =>
     request<Board>(`/finance/${unit}/board${q({ publish: publish ? "true" : undefined })}`, { method: "PUT", body: JSON.stringify(board) }),
   versions: (unit: string) => request<VersionInfo[]>(`/finance/${unit}/versions`),
@@ -46,7 +50,8 @@ export const api = {
   },
   /** Turn a validated import into a draft version, or straight into the approved one. */
   publishImport: (id: string, approve: boolean) => request<PublishedImport>(`/imports/${id}/publish${q({ approve: approve ? "true" : undefined })}`, { method: "POST" }),
-  databoard: () => request<Databoard>("/databoard/latest"),
+  /** The newest weekly board as at the selected period; its finance figures follow the same period. */
+  databoard: (period: PeriodParams = {}) => request<Databoard>(`/databoard/latest${q(period)}`),
   saveDataboard: (weekEnding: string, doc: unknown, publish: boolean) =>
     request<Databoard>(`/databoard/${encodeURIComponent(weekEnding)}${q({ publish: publish ? "true" : undefined })}`, { method: "PUT", body: JSON.stringify(doc) }),
 };

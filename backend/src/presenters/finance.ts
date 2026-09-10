@@ -10,8 +10,9 @@ import { toDollars } from "@/lib/money";
 import { health } from "@/services/rollup";
 import { columnLabel } from "@/services/reconciliation";
 import { financeStatus, toLower } from "@/services/status";
-import type { Consolidated } from "@/services/consolidation";
+import { consolidate, type Consolidated } from "@/services/consolidation";
 import type { UnitBoard } from "@/services/financeQuery";
+import type { PeriodDoc } from "@/services/structure";
 
 const dollars = (a: Amounts): Amounts => ({ budget: toDollars(a.budget), actual: toDollars(a.actual), annualBudget: toDollars(a.annualBudget), eoyEstimate: toDollars(a.eoyEstimate) });
 const displayCode = (code: string) => (code.startsWith("X-") ? "" : code);
@@ -114,6 +115,24 @@ export function presentSummary(c: Consolidated, boards: UnitBoard[]) {
       surVar: toDollars(u.rollup.surVar), marginPct: +u.rollup.margin.actual.toFixed(2), finance: toLower(u.finance),
     })),
     needsAttention: flags,
+  };
+}
+
+/** Month by month for the timeline card: each month's boards and their combined totals. Oldest first. */
+export function presentTimeline(months: Array<{ period: PeriodDoc; boards: UnitBoard[] }>) {
+  return {
+    periods: months.map(({ period, boards }) => {
+      const c = consolidate(boards.map((b) => ({ unitCode: b.unit.code, unitName: b.unit.name, shortName: b.unit.shortName, periodLabel: period.label, isPlaceholder: b.version.isPlaceholder, rollup: b.rollup })), boards[0]?.structure.metrics.amberWithinPct ?? 5);
+      return {
+        label: period.label, endsOn: period.endsOn.toISOString().slice(0, 10), boards: boards.length, includesPlaceholder: c.includesPlaceholder,
+        totals: { income: dollars(c.totals.income), expenditure: dollars(c.totals.expenditure), surplus: dollars(c.totals.surplus), incVar: toDollars(c.incVar), expVar: toDollars(c.expVar), surVar: toDollars(c.surVar), marginPct: +c.marginPct.toFixed(2) },
+        units: c.units.map((u) => ({
+          unit: u.unitCode, name: u.unitName, short: u.shortName, placeholder: u.isPlaceholder,
+          income: dollars(u.rollup.totals.income), spending: dollars(u.rollup.totals.expenditure), surplus: dollars(u.rollup.totals.surplus),
+          surVar: toDollars(u.rollup.surVar), marginPct: +u.rollup.margin.actual.toFixed(2), finance: toLower(u.finance),
+        })),
+      };
+    }),
   };
 }
 

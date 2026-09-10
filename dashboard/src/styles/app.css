@@ -399,3 +399,48 @@ button.rating{cursor:pointer}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{margin:12mm}
 }
+
+/* ---------- period picker (the shared "As at" control) ---------- */
+.period{position:relative}
+.pill-btn{cursor:pointer;font:inherit;text-align:left;color:var(--ink);transition:border-color .15s}
+.pill-btn:hover,.pill-btn.open,.pill-btn:focus-visible{border-color:var(--accent);outline:none}
+.pill-btn:disabled{cursor:default;opacity:.85}
+.pill-btn:disabled:hover{border-color:var(--glass-border)}
+.pill-btn .chev{font-size:.7rem;color:var(--muted);margin-left:2px}
+.pill-btn.open .chev{color:var(--accent)}
+.pill-note{display:block;font-size:.68rem;font-weight:500;color:var(--muted);margin-top:1px}
+.period.has-extra .pill-btn{padding-right:34px}
+.period-extra{position:absolute;right:6px;top:50%;transform:translateY(-50%)}
+.period:hover .period-extra .pill-pencil,.period:focus-within .period-extra .pill-pencil{opacity:1}
+.period-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:40;width:300px;max-width:calc(100vw - 32px);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px;display:flex;flex-direction:column;gap:8px}
+.period-pop.align-right{left:auto;right:0}
+.light-none{display:inline-block;width:28px;height:28px;line-height:22px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--line);color:var(--faint);text-align:center;font-weight:700;vertical-align:middle}
+.period-search{width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;font:inherit;font-size:.82rem;background:var(--surface);color:var(--ink)}
+.period-search:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.period-quick{display:flex;gap:6px;flex-wrap:wrap}
+.chipbtn{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-pill);font-size:.74rem;font-weight:600;color:var(--muted);padding:4px 11px;cursor:pointer;font-family:inherit}
+.chipbtn:hover,.chipbtn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.period-list{display:flex;flex-direction:column;max-height:min(48vh,420px);overflow:auto;border-top:1px solid var(--line);margin-top:2px}
+.period-opt{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:none;border:0;border-bottom:1px solid var(--line);padding:8px 8px;font:inherit;font-size:.84rem;font-weight:600;color:var(--ink);cursor:pointer;text-align:left;border-radius:6px}
+.period-opt small{font-size:.7rem;font-weight:500;color:var(--muted);white-space:nowrap}
+.period-opt.bare{color:var(--muted);font-weight:500}
+.period-opt:hover{background:var(--accent-softer)}
+.period-opt.on{background:var(--accent-soft);color:var(--accent)}
+.period-opt:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.period-empty{padding:14px 8px;font-size:.8rem;color:var(--muted);text-align:center}
+.period-more{background:none;border:1px dashed var(--line-strong);border-radius:8px;padding:7px;font:inherit;font-size:.78rem;font-weight:600;color:var(--accent);cursor:pointer;display:flex;justify-content:center;gap:6px;align-items:baseline}
+.period-more small{color:var(--muted);font-weight:500}
+.period-more:hover{border-color:var(--accent);background:var(--accent-softer)}
+.period-range{display:flex;flex-direction:column;gap:8px}
+.period-head{font-weight:700;font-size:.86rem}
+.period-field{display:flex;flex-direction:column;gap:3px;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.period-field select{font:inherit;font-size:.84rem;font-weight:600;text-transform:none;letter-spacing:0;color:var(--ink);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px}
+.period-acts{display:flex;justify-content:flex-end;gap:6px}
+.timeline .tl-units{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.timeline .tag{margin-right:0}
+.timeline .tag{display:inline-flex;align-items:center;gap:4px}
+.tl-sub{font-size:.84rem;font-weight:700;margin:14px 0 8px;color:var(--muted)}
+.noboard{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.noboard .acts{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:600px){ .period-pop{position:fixed;left:16px;right:16px;top:auto;width:auto;max-width:none} }
+@media print{ .period-pop,.pill-btn .chev{display:none!important} }

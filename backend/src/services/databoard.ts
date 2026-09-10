@@ -30,11 +30,13 @@ export function parseWeekEnding(s: string): Date {
 }
 export const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
-export async function latestBoard(preferPublished = true): Promise<WeeklyBoardDoc | null> {
+/** The newest board, published if there is one. With `upTo`, the newest whose week ended on or before that date. */
+export async function latestBoard(preferPublished = true, upTo?: Date): Promise<WeeklyBoardDoc | null> {
   const org = await getOrg();
-  const q = preferPublished ? { organisationId: org._id, status: "PUBLISHED" } : { organisationId: org._id };
+  const q: Record<string, unknown> = preferPublished ? { organisationId: org._id, status: "PUBLISHED" } : { organisationId: org._id };
+  if (upTo) q.weekEnding = { $lte: upTo };
   const b = (await WeeklyBoardModel.findOne(q).sort({ weekEnding: -1 }).lean()) as unknown as WeeklyBoardDoc | null;
-  return b ?? (preferPublished ? latestBoard(false) : null);
+  return b ?? (preferPublished ? latestBoard(false, upTo) : null);
 }
 export async function boardFor(weekEnding: string): Promise<WeeklyBoardDoc> {
   const org = await getOrg();

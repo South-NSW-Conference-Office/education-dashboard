@@ -2,6 +2,8 @@
 export type Light = "green" | "amber" | "red";
 
 export interface Unit { code: string; name: string; short: string; type: string; location: string; colour: string | null; order: number }
+/** A fiscal month, with the units that hold an approved board or an open draft in it. */
+export interface Period { id: string; label: string; periodNo: number; startsOn: string; endsOn: string; status: string; approved: string[]; drafts: string[]; placeholder: boolean }
 
 export interface Amounts { budget: number; actual: number; annualBudget: number; eoyEstimate: number }
 export interface SubLine extends Amounts { label: string; computed?: boolean; lines?: number }
@@ -66,6 +68,13 @@ export interface Summary {
   schools: Array<{ unit: string; name: string; short: string; asAt: string; placeholder: boolean; income: Amounts; spending: Amounts; surplus: Amounts; surVar: number; marginPct: number; finance: Light }>;
   needsAttention: Array<{ unit: string; short: string; label: string; unfavourable: number; colour: Light }>;
 }
+
+export interface TimelineMonth {
+  label: string; endsOn: string; boards: number; includesPlaceholder: boolean;
+  totals: Summary["totals"];
+  units: Array<{ unit: string; name: string; short: string; placeholder: boolean; income: Amounts; spending: Amounts; surplus: Amounts; surVar: number; marginPct: number; finance: Light }>;
+}
+export interface Timeline { periods: TimelineMonth[] }
 
 export interface MatrixRow {
   unit: string; school: string; sub: string;

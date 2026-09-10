@@ -6,19 +6,31 @@ import { Types } from "mongoose";
 import { ReconciliationCheckModel } from "@/models";
 import type { BoardDocument } from "@/domain/types";
 import { badRequest, notFound, ok, parseBody, query } from "@/lib/http";
-import { presentBoard, presentOverview, presentSummary } from "@/presenters/finance";
-import { consolidateBoards, loadAllBoards, loadUnitBoard, type ReadOptions } from "@/services/financeQuery";
+import { ReportVersionModel } from "@/models";
+import { presentBoard, presentOverview, presentSummary, presentTimeline } from "@/presenters/finance";
+import { consolidateBoards, loadAllBoards, loadTimeline, loadUnitBoard, type ReadOptions } from "@/services/financeQuery";
 import { approveVersion, patchLineItems, saveBoardDocument } from "@/services/financeWrite";
-import { ensurePeriodByLabel, getUnit, listPeriods, listUnits } from "@/services/structure";
+import { ensurePeriodByLabel, getUnit, listPeriods, listUnits, parsePeriodLabel } from "@/services/structure";
 import { ensureDraft, getVersion, listVersions, reject, submit } from "@/services/workflow";
 import { boardDocumentSchema, lineItemPatchSchema, rejectSchema, resolveSchema } from "./schemas";
 import { presentPeriod, presentUnit, presentVersion } from "./registry";
 
-function readOptions(req: Request): ReadOptions {
+/** `period` names one month; `from` / `to` bound a range (either may be missing). All labels look like "June 2026". */
+export function readOptions(req: Request): ReadOptions {
   const q = query(req);
   const mode = (q.get("versionMode") ?? "LATEST_APPROVED").toUpperCase();
   if (mode !== "LATEST_APPROVED" && mode !== "DRAFT") throw badRequest("versionMode must be LATEST_APPROVED or DRAFT");
-  return { periodLabel: q.get("period"), versionMode: mode };
+  const period = q.get("period"), from = q.get("from"), to = q.get("to");
+  for (const l of [period, from, to]) if (l) parsePeriodLabel(l);
+  if (period && (from || to)) throw badRequest("Give either period or a from/to range, not both");
+  return { periodLabel: period, from, to, versionMode: mode };
+}
+
+/** Month by month for a range (or everything): the boards each month holds and their totals. */
+export async function getTimeline(req: Request) {
+  const { from, to } = readOptions(req);
+  const unit = query(req).get("unit");
+  return ok(presentTimeline(await loadTimeline({ from, to }, unit || undefined)));
 }
 
 export async function getSummary(req: Request) {
@@ -111,4 +123,17 @@ export async function postResolve(req: Request, unit: string, id: string) {
 }
 
 export async function getUnits() { return ok((await listUnits()).map(presentUnit)); }
-export async function getPeriods() { return ok((await listPeriods()).map(presentPeriod)); }
+/** Every fiscal period, with the units that have an approved board or an open draft in it, so a picker can show what each month holds. */
+export async function getPeriods() {
+  const [periods, units, versions] = await Promise.all([
+    listPeriods(), listUnits(),
+    ReportVersionModel.find({ status: { $in: ["APPROVED", "DRAFT", "IN_REVIEW"] } }, { operatingUnitId: 1, fiscalPeriodId: 1, status: 1, isPlaceholder: 1 }).lean(),
+  ]);
+  const code = new Map(units.map((u) => [String(u._id), u.code]));
+  return ok(periods.map((p) => {
+    const here = versions.filter((v) => String(v.fiscalPeriodId) === String(p._id) && code.has(String(v.operatingUnitId)));
+    const approved = [...new Set(here.filter((v) => v.status === "APPROVED").map((v) => code.get(String(v.operatingUnitId))!))];
+    const drafts = [...new Set(here.filter((v) => v.status !== "APPROVED").map((v) => code.get(String(v.operatingUnitId))!))];
+    return { ...presentPeriod(p), approved, drafts, placeholder: here.some((v) => v.status === "APPROVED" && v.isPlaceholder) };
+  }));
+}
