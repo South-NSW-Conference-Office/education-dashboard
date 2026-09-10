@@ -69,6 +69,25 @@ export function TextArea({ value, onChange, placeholder, rows }: { value: string
   return <textarea value={value ?? ""} placeholder={placeholder} rows={rows} onChange={(e) => onChange(e.target.value)} />;
 }
 
+/** Sticky bar that appears once a draft session has unsaved line edits. Carries the save actions
+ *  that used to live in the page header, so nothing reaches the server until it is used. */
+export function SaveBar({ count, saving, onSaveDraft, onPublish, onDiscard }: {
+  count: number; saving?: boolean; onSaveDraft: () => void; onPublish: () => void; onDiscard: () => void;
+}) {
+  return (
+    <div className="savebar" role="region" aria-label="Unsaved line item changes">
+      <div className="savebar-in">
+        <p className="savebar-count"><b>{count} line{count === 1 ? "" : "s"} edited</b><span>The approved figures stay as they are until you publish.</span></p>
+        <div className="savebar-acts">
+          <Button onClick={onDiscard} disabled={saving}>Discard</Button>
+          <Button onClick={onSaveDraft} disabled={saving}>Save draft</Button>
+          <Button variant="primary" onClick={onPublish} disabled={saving}>Save &amp; publish</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- banners & states ---------- */
 export function Banner({ tone, children }: { tone: "amber" | "green" | "blue" | "red"; children: ReactNode }) {
   return <div className={`banner banner-${tone}`}>{children}</div>;

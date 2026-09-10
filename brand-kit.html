@@ -6,51 +6,55 @@
   :root{
     --accent:#0D5CAB; --accent-dark:#0A4A8C; --accent-soft:#EAF2FB; --accent-softer:#F3F8FE;
     --gold:#E0A536; --gold-text:#8A5E0E; --gold-soft:#FDF4E3;
-    --ink:#1D1D22; --muted:#5C636C; --faint:#9AA0A8;
+    --ink:#1D1D22; --muted:#5C636C; --faint:#666D77;
     --surface:#FFFFFF; --surface-2:#F8FAFC; --bg:#EEF1F5;
     --line:#E3E7EC; --line-strong:#CFD5DD;
     --green:#2E9D5C; --green-soft:#E7F4EC; --green-text:#1F6B41;
     --amber:#E0A12E; --amber-soft:#FBF1DE; --amber-text:#8A5E0E;
     --red:#CF4646; --red-soft:#FAE7E7; --red-text:#9E2F2F;
-    --side-1:#0F1115; --side-2:#181B21; --side-text:#C9CDD4; --side-text-dim:#8D929B;
+    --side-1:#0F1115; --side-2:#181B21; --side-text:#C9CDD4; --side-text-dim:#A0A6AF;
     --radius-sm:6px; --radius:12px; --radius-lg:16px; --radius-pill:999px;
     --shadow:0 1px 2px rgba(20,24,33,.05),0 8px 24px rgba(20,24,33,.07);
     --font-ui:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
     --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --glass:rgba(255,255,255,.58); --glass-strong:rgba(255,255,255,.8); --glass-border:rgba(255,255,255,.65);
-    --glass-shadow:0 8px 32px rgba(31,41,64,.14), inset 0 1px 0 rgba(255,255,255,.5);
+    --glass:rgba(255,255,255,.72); --glass-strong:rgba(255,255,255,.86); --glass-border:rgba(20,24,33,.09);
+    --glass-shadow:0 8px 28px rgba(31,41,64,.12), inset 0 1px 0 rgba(255,255,255,.75);
     --blur:18px;
-    --blob-1:rgba(13,92,171,.16); --blob-2:rgba(224,165,54,.14);
+    --blob-1:rgba(13,92,171,.18); --blob-2:rgba(224,165,54,.16);
+    --accent-glass:rgba(13,92,171,.92); --accent-glass-2:rgba(10,74,140,.9); --accent-glass-border:rgba(255,255,255,.42);
+    --rail-glass-1:rgba(24,27,33,.82); --rail-glass-2:rgba(15,17,21,.86);
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --accent:#5C9BDD; --accent-dark:#3E7FC4; --accent-soft:rgba(92,155,221,.16); --accent-softer:rgba(92,155,221,.08);
       --gold:#E9BD6B; --gold-text:#E9BD6B; --gold-soft:rgba(224,165,54,.16);
-      --ink:#EDEFF3; --muted:#A6ACB6; --faint:#6C7380;
+      --ink:#EDEFF3; --muted:#A6ACB6; --faint:#8A919C;
       --surface:#1B1F27; --surface-2:#20242E; --bg:#0F1216;
       --line:#2B2F39; --line-strong:#3A4150;
       --green:#4CBE82; --green-soft:rgba(46,157,92,.16); --green-text:#7CD6A3;
       --amber:#E0A12E; --amber-soft:rgba(224,161,46,.16); --amber-text:#E9BD6B;
       --red:#E17070; --red-soft:rgba(207,70,70,.16); --red-text:#F0A0A0;
-      --glass:rgba(27,31,39,.5); --glass-strong:rgba(27,31,39,.68); --glass-border:rgba(255,255,255,.09);
-      --glass-shadow:0 10px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+      --glass:rgba(27,31,39,.66); --glass-strong:rgba(27,31,39,.82); --glass-border:rgba(255,255,255,.12);
+      --glass-shadow:0 10px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
       --blob-1:rgba(92,155,221,.22); --blob-2:rgba(233,189,107,.16);
+      --accent-glass:rgba(40,100,165,.92); --accent-glass-2:rgba(28,80,140,.92); --accent-glass-border:rgba(255,255,255,.3);
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"]{
     --accent:#5C9BDD; --accent-dark:#3E7FC4; --accent-soft:rgba(92,155,221,.16); --accent-softer:rgba(92,155,221,.08);
     --gold:#E9BD6B; --gold-text:#E9BD6B; --gold-soft:rgba(224,165,54,.16);
-    --ink:#EDEFF3; --muted:#A6ACB6; --faint:#6C7380;
+    --ink:#EDEFF3; --muted:#A6ACB6; --faint:#8A919C;
     --surface:#1B1F27; --surface-2:#20242E; --bg:#0F1216;
     --line:#2B2F39; --line-strong:#3A4150;
     --green:#4CBE82; --green-soft:rgba(46,157,92,.16); --green-text:#7CD6A3;
     --amber:#E0A12E; --amber-soft:rgba(224,161,46,.16); --amber-text:#E9BD6B;
     --red:#E17070; --red-soft:rgba(207,70,70,.16); --red-text:#F0A0A0;
-    --glass:rgba(27,31,39,.5); --glass-strong:rgba(27,31,39,.68); --glass-border:rgba(255,255,255,.09);
-    --glass-shadow:0 10px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+    --glass:rgba(27,31,39,.66); --glass-strong:rgba(27,31,39,.82); --glass-border:rgba(255,255,255,.12);
+    --glass-shadow:0 10px 36px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
     --blob-1:rgba(92,155,221,.22); --blob-2:rgba(233,189,107,.16);
+    --accent-glass:rgba(40,100,165,.92); --accent-glass-2:rgba(28,80,140,.92); --accent-glass-border:rgba(255,255,255,.3);
     color-scheme: dark;
   }
   *{box-sizing:border-box}
@@ -61,7 +65,7 @@
   .layout{display:flex;min-height:100vh}
 
   /* ---- left rail, deliberately reusing the dashboard's own sidebar language ---- */
-  .rail{width:230px;flex-shrink:0;background:linear-gradient(180deg,rgba(24,27,33,.55) 0%,rgba(15,17,21,.6) 100%);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);color:var(--side-text);position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 0 20px;border-right:1px solid rgba(255,255,255,.06)}
+  .rail{width:230px;flex-shrink:0;background:linear-gradient(180deg,var(--rail-glass-1) 0%,var(--rail-glass-2) 100%);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);color:var(--side-text);position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 0 20px;border-right:1px solid rgba(255,255,255,.08)}
   .rail-brand{padding:0 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:14px}
   .rail-brand b{display:block;color:#fff;font-size:.94rem;letter-spacing:-.01em}
   .rail-brand span{display:block;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--side-text-dim);margin-top:4px}
@@ -88,10 +92,11 @@
 
   .card{background:var(--glass);backdrop-filter:blur(var(--blur)) saturate(160%);-webkit-backdrop-filter:blur(var(--blur)) saturate(160%);border:1px solid var(--glass-border);border-radius:var(--radius);box-shadow:var(--glass-shadow);padding:20px 22px}
   .pad-lg{padding:26px 28px}
+  .glass-strong{background:var(--glass-strong)}
 
   /* swatches */
   .swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
-  .swatch{border:1px solid var(--glass-border);border-radius:var(--radius);overflow:hidden;background:var(--glass);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%)}
+  .swatch{border:1px solid var(--glass-border);border-radius:var(--radius);overflow:hidden;background:var(--glass-strong);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%)}
   .swatch-fill{height:64px}
   .swatch-info{padding:10px 12px}
   .swatch-info b{display:block;font-size:.82rem;font-weight:700}
@@ -110,6 +115,11 @@
   .spec-bar{background:var(--accent);border-radius:3px;height:10px}
   .spec-item .mono{width:56px;flex-shrink:0;color:var(--muted)}
   .spec-item .label{width:150px;flex-shrink:0;color:var(--faint)}
+  .glass-spec{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 18px}
+  .glass-spec div{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);background:var(--accent-softer)}
+  .glass-spec b{font-size:.8rem;font-weight:700}
+  .glass-spec span{font-family:var(--font-mono);font-size:.7rem;color:var(--accent)}
+  .glass-spec em{font-style:normal;font-size:.72rem;color:var(--muted);line-height:1.4}
 
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
@@ -122,9 +132,10 @@
   .trend{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:700;padding:2px 7px;border-radius:var(--radius-pill)}
   .trend.up{background:var(--green-soft);color:var(--green-text)}
   .trend.down{background:var(--red-soft);color:var(--red-text)}
-  .kpi.feature{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 72%,transparent),color-mix(in srgb,var(--accent-dark) 65%,transparent));backdrop-filter:blur(var(--blur)) saturate(180%);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);border:1px solid color-mix(in srgb,var(--accent) 35%,white 65%);box-shadow:var(--glass-shadow);color:#fff}
-  .kpi.feature .kpi-label{color:rgba(255,255,255,.75)}
-  .kpi.feature .kpi-sub{color:rgba(255,255,255,.7)}
+  .kpi.feature{background:linear-gradient(135deg,var(--accent-glass),var(--accent-glass-2));backdrop-filter:blur(var(--blur)) saturate(160%);-webkit-backdrop-filter:blur(var(--blur)) saturate(160%);border:1px solid var(--accent-glass-border);box-shadow:0 10px 28px rgba(13,92,171,.28),inset 0 1px 0 rgba(255,255,255,.4);color:#fff}
+  .kpi.feature .kpi-label{color:rgba(255,255,255,.9)}
+  .kpi.feature .kpi-sub{color:rgba(255,255,255,.85)}
+  .kpi.feature .trend{background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.45)}
 
   .chip{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:var(--radius-pill)}
   .chip-green{background:var(--green-soft);color:var(--green-text)}
@@ -155,13 +166,13 @@
   .school-cell span{display:block;font-size:.7rem;color:var(--faint)}
   .num{font-variant-numeric:tabular-nums;text-align:right}
 
-  .mini-sidebar{width:190px;flex-shrink:0;background:linear-gradient(180deg,rgba(24,27,33,.55) 0%,rgba(15,17,21,.6) 100%);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border-radius:var(--radius-sm) 0 0 var(--radius-sm);padding:16px 10px;display:flex;flex-direction:column;gap:2px}
+  .mini-sidebar{width:190px;flex-shrink:0;background:linear-gradient(180deg,var(--rail-glass-1) 0%,var(--rail-glass-2) 100%);border-radius:var(--radius-sm) 0 0 var(--radius-sm);padding:16px 10px;display:flex;flex-direction:column;gap:2px}
   .mini-sidebar .brand-row{display:flex;align-items:center;gap:8px;padding:0 8px 12px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.08)}
   .mini-sidebar .brand-row .dotlogo{width:22px;height:22px;border-radius:6px;background:var(--accent-dark);flex-shrink:0}
   .mini-sidebar .brand-row b{color:#fff;font-size:.74rem}
   .mini-nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;font-size:.74rem;color:var(--side-text);font-weight:500}
   .mini-nav-item.active{background:rgba(13,92,171,.35);color:#fff}
-  .mini-topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--glass-border);background:var(--glass);backdrop-filter:blur(14px) saturate(160%);-webkit-backdrop-filter:blur(14px) saturate(160%)}
+  .mini-topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--glass-border);background:var(--glass-strong)}
   .mini-search{border:1px solid var(--glass-border);border-radius:var(--radius-pill);padding:5px 12px;font-size:.74rem;color:var(--faint);flex:1;background:color-mix(in srgb,var(--surface) 45%,transparent)}
   .mini-avatar{width:26px;height:26px;border-radius:50%;background:var(--gold);flex-shrink:0}
   .mini-icon{width:26px;height:26px;border-radius:8px;border:1px solid var(--glass-border);flex-shrink:0}
@@ -171,7 +182,7 @@
   .btn{font:inherit;font-weight:600;font-size:.82rem;padding:9px 16px;border-radius:9px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
   .btn-primary{background:var(--accent);color:#fff}
   .btn-gold{background:var(--gold);color:#3a2b06}
-  .btn-ghost{background:var(--glass);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%);color:var(--ink);border-color:var(--glass-border)}
+  .btn-ghost{background:var(--glass-strong);color:var(--ink);border-color:var(--line-strong)}
   .btn-pill{border-radius:var(--radius-pill);padding:6px 14px;font-size:.76rem}
 
   .do-dont{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -182,7 +193,7 @@
   .do-dont ul{margin:0;padding-left:18px;font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 
   .logo-row{display:flex;gap:20px;flex-wrap:wrap}
-  .logo-box{background:var(--glass);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid var(--glass-border);border-radius:var(--radius);padding:22px 26px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .logo-box{background:var(--glass-strong);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border:1px solid var(--glass-border);border-radius:var(--radius);padding:22px 26px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px}
   .logo-box img{max-height:56px;width:auto}
   .logo-box span{font-size:.72rem;color:var(--faint);font-family:var(--font-mono)}
   .logo-box.dark-bg{background:linear-gradient(180deg,var(--side-2) 0%,var(--side-1) 100%)}
@@ -195,6 +206,7 @@
     .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
     .device-frame{flex-direction:column}
     .mini-sidebar{width:100%;flex-direction:row;border-radius:var(--radius-sm) var(--radius-sm) 0 0}
+    .glass-spec{grid-template-columns:1fr}
   }
 </style>
 
@@ -209,7 +221,7 @@
       <a href="#logos">Logos</a>
       <a href="#color">Colour</a>
       <a href="#type">Typography</a>
-      <a href="#spacing">Spacing &amp; elevation</a>
+      <a href="#spacing">Spacing, elevation &amp; glass</a>
       <a href="#status">Status system</a>
       <a href="#stats">Stat tiles</a>
       <a href="#charts">Charts</a>
@@ -233,7 +245,7 @@
         <div>Source system<b>app/css/app.css</b></div>
         <div>Primary typeface<b>Inter</b></div>
         <div>Surface style<b>Semi-glass (blur + translucency)</b></div>
-        <div>Status<b>Living document — v1.1</b></div>
+        <div>Status<b>Living document — v1.2</b></div>
       </div>
     </section>
 
@@ -281,7 +293,7 @@
     <section class="doc" id="type">
       <div class="sec-head"><span class="sec-num">03</span><h2>Typography</h2></div>
       <p class="sec-note"><b>Inter</b> for every UI role — it's already the app's typeface, it holds up at the small sizes a dense finance table needs, and its tabular figures keep columns of dollars aligned. <b>IBM Plex Mono</b> is reserved for design-token labels and account codes only, never for interface copy.</p>
-      <div class="card">
+      <div class="card glass-strong">
         <div class="type-row"><div class="type-tag">2.1rem / 800<b>Page title</b></div><div style="font-size:2.1rem;font-weight:800;letter-spacing:-.02em">Term 3 finance summary</div></div>
         <div class="type-row"><div class="type-tag">1.3rem / 800<b>Section heading</b></div><div style="font-size:1.3rem;font-weight:800;letter-spacing:-.01em">Border Christian College</div></div>
         <div class="type-row"><div class="type-tag">1rem / 700<b>Card heading</b></div><div style="font-size:1rem;font-weight:700">Budget vs actual</div></div>
@@ -293,8 +305,8 @@
     </section>
 
     <section class="doc" id="spacing">
-      <div class="sec-head"><span class="sec-num">04</span><h2>Spacing &amp; elevation</h2></div>
-      <p class="sec-note">One 4px-based scale for gaps and padding; one radius per surface role; a single soft shadow used only where a card floats above the page canvas.</p>
+      <div class="sec-head"><span class="sec-num">04</span><h2>Spacing, elevation &amp; glass</h2></div>
+      <p class="sec-note">One 4px-based scale for gaps and padding; one radius per surface role; a single soft shadow used only where a card floats above the page canvas; and for glass surfaces, an opacity floor per role so text never depends on the blur for contrast.</p>
       <div class="grid-2">
         <div class="card">
           <h4 style="font-size:.8rem;margin-bottom:14px">Spacing scale</h4>
@@ -314,7 +326,19 @@
             <div style="width:64px;height:64px;background:var(--accent-soft);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.68rem;color:var(--accent)">12px</div>
             <div style="width:64px;height:64px;background:var(--accent-soft);border:1px solid var(--line);border-radius:999px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.68rem;color:var(--accent)">pill</div>
           </div>
-          <p style="font-size:.78rem;color:var(--muted)">Card shadow — <code class="mono">0 1px 2px rgba(20,24,33,.05), 0 8px 24px rgba(20,24,33,.07)</code>. Applied once, at the card boundary. Nested elements never carry their own shadow.</p>
+          <p style="font-size:.78rem;color:var(--muted)">Card shadow — <code class="mono">0 8px 28px rgba(31,41,64,.12)</code> plus a 1px inner top highlight. Applied once, at the card boundary. Nested elements never carry their own shadow or blur.</p>
+        </div>
+      </div>
+      <div class="card glass-strong" style="margin-top:18px">
+        <h4 style="font-size:.8rem;margin-bottom:4px">Glass surfaces — opacity floors</h4>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px;max-width:72ch">The blurred backdrop is atmosphere, not contrast. Every fill below has to pass its text-contrast target on its own, with the blur switched off — then the blur is free to add depth.</p>
+        <div class="glass-spec">
+          <div><b>Cards &amp; chrome</b><span>--glass · white 72% / dark 66%</span><em>Blur 18px · body text ≥ 7:1, secondary ≥ 4.5:1</em></div>
+          <div><b>Dense data &amp; controls</b><span>--glass-strong · white 86% / dark 82%</span><em>Tables, buttons, swatches, type specimens · small text ≥ 4.5:1</em></div>
+          <div><b>Sidebar</b><span>--rail-glass · near-black 82–86%</span><em>Blur 24px · nav text ≥ 7:1 on every backdrop, both modes</em></div>
+          <div><b>Feature tile</b><span>--accent-glass · brand blue 92%</span><em>White text ≥ 6:1 · white edge at 42% · own blue shadow</em></div>
+          <div><b>Edge</b><span>--glass-border · ink 9% / white 12%</span><em>The 1px edge plus inner highlight is what reads as glass — not the blur</em></div>
+          <div><b>Nesting</b><span>one blur per level</span><em>Children of a glass surface take a fill only, no backdrop-filter of their own</em></div>
         </div>
       </div>
     </section>
@@ -348,7 +372,7 @@
         <div class="card kpi feature">
           <div class="kpi-label">Total income YTD</div>
           <div class="kpi-value">$99,560</div>
-          <div style="margin-top:8px"><span class="trend up" style="background:rgba(255,255,255,.2);color:#fff">▲ 2.6%</span></div>
+          <div style="margin-top:8px"><span class="trend up">▲ 2.6%</span></div>
         </div>
         <div class="card kpi">
           <div class="kpi-label">Total expenditure</div>
@@ -412,7 +436,7 @@
     <section class="doc" id="tables">
       <div class="sec-head"><span class="sec-num">08</span><h2>Tables</h2></div>
       <p class="sec-note">The order-list pattern from the mock, rebuilt as the school summary the finance view already needs — school swatch, tabular figures, status chip in the traffic-light colours instead of the mock's PayPal-style tags.</p>
-      <div class="card" style="padding:18px 20px">
+      <div class="card glass-strong" style="padding:18px 20px">
         <table class="mocktable">
           <thead><tr><th>School</th><th>Reporting period</th><th style="text-align:right">Budget</th><th style="text-align:right">Actual</th><th>Status</th></tr></thead>
           <tbody>
@@ -466,7 +490,7 @@
 
     <section class="doc" id="controls">
       <div class="sec-head"><span class="sec-num">10</span><h2>Buttons &amp; controls</h2></div>
-      <div class="card" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <div class="card glass-strong" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-primary">Save changes</button>
         <button class="btn btn-ghost">Cancel</button>
         <button class="btn btn-gold">Export report</button>

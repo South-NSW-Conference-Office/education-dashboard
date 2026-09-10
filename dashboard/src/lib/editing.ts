@@ -32,6 +32,34 @@ export function removeRow(board: Board, sec: "income" | "expenditure", gi: numbe
   b.details[sec][gi].rows.splice(ri, 1);
   return b;
 }
+/**
+ * How many line items differ between two boards — drives the save bar's count. Lines are matched
+ * on their account code, not their position, so removing one line counts as one change rather than
+ * as every line below it having shifted up.
+ */
+export function countChangedRows(a: Board, b: Board): number {
+  const key = (r: LineItem) => r.code || r.label;
+  const index = (rows: LineItem[]) => {
+    const m = new Map<string, LineItem[]>();
+    for (const r of rows) (m.get(key(r)) ?? m.set(key(r), []).get(key(r))!).push(r);
+    return m;
+  };
+  let n = 0;
+  for (const sec of ["income", "expenditure"] as const) {
+    const ga = a.details[sec], gb = b.details[sec];
+    for (let gi = 0; gi < Math.max(ga.length, gb.length); gi++) {
+      const before = index(ga[gi]?.rows ?? []), after = index(gb[gi]?.rows ?? []);
+      for (const k of new Set([...before.keys(), ...after.keys()])) {
+        const ra = before.get(k) ?? [], rb = after.get(k) ?? [];
+        const paired = Math.min(ra.length, rb.length);
+        for (let i = 0; i < paired; i++) if (JSON.stringify(ra[i]) !== JSON.stringify(rb[i])) n++;
+        n += Math.abs(ra.length - rb.length);
+      }
+    }
+  }
+  return n;
+}
+
 export function setPath(board: Board, path: string, value: unknown): Board {
   const b = clone(board);
   const parts = path.split(".");
