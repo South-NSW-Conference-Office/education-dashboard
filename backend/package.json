@@ -1,0 +1,30 @@
+{
+  "name": "snsw-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SNSW Adventist Education dashboards — Next.js backend (MVC + services) on MongoDB",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seed": "tsx scripts/seed.ts",
+    "seed:reset": "tsx scripts/seed.ts --reset"
+  },
+  "dependencies": {
+    "mongoose": "^9.9.5",
+    "next": "^16.3.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

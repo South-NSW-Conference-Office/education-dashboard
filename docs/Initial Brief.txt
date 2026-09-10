@@ -1,0 +1,9 @@
+- combine into a single project that can switch between boards
+
+Hi Bem, I hope you are going well. Kyle let me know you spoke out the 4 financial dashboards I have created along with the overarching Education Dashboard. They are all HTML files.
+Can I please ask you to:
+1. Host them on the SNSW server so we can all access and update them (finance team, principals, education board)
+2. Also with the 4 financial boards if possible make the data live so it can be updated directly from MYOB, Synergetic and Hubworks. I believe there are also a couple of line items that may need amortized calculations but I can put you in touch with the finance team to clarify this if needed too?
+
+Please let me know what else you may need and if this seems possible?
+Thanks :)

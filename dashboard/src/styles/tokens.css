@@ -1,0 +1,53 @@
+/* Design tokens — taken from brand-kit.html (SNSW Dashboard Brand & UI Kit v1.1).
+   Light palette on :root; dark redefined for system-dark (unless light is forced) and for the toggle. */
+:root {
+  --accent: #0D5CAB; --accent-dark: #0A4A8C; --accent-soft: #EAF2FB; --accent-softer: #F3F8FE;
+  --gold: #E0A536; --gold-text: #8A5E0E; --gold-soft: #FDF4E3;
+  --ink: #1D1D22; --muted: #5C636C; --faint: #9AA0A8;
+  --surface: #FFFFFF; --surface-2: #F8FAFC; --bg: #EEF1F5;
+  --line: #E3E7EC; --line-strong: #CFD5DD;
+  --green: #2E9D5C; --green-soft: #E7F4EC; --green-text: #1F6B41;
+  --amber: #E0A12E; --amber-soft: #FBF1DE; --amber-text: #8A5E0E;
+  --red: #CF4646; --red-soft: #FAE7E7; --red-text: #9E2F2F;
+  --side-1: #0F1115; --side-2: #181B21; --side-text: #C9CDD4; --side-text-dim: #8D929B;
+  --radius-sm: 6px; --radius: 12px; --radius-lg: 16px; --radius-pill: 999px;
+  --shadow: 0 1px 2px rgba(20, 24, 33, .05), 0 8px 24px rgba(20, 24, 33, .07);
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --glass: rgba(255, 255, 255, .58); --glass-strong: rgba(255, 255, 255, .8); --glass-border: rgba(255, 255, 255, .65);
+  --glass-shadow: 0 8px 32px rgba(31, 41, 64, .14), inset 0 1px 0 rgba(255, 255, 255, .5);
+  --blur: 18px;
+  --blob-1: rgba(13, 92, 171, .16); --blob-2: rgba(224, 165, 54, .14);
+  --sidebar-w: 264px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #5C9BDD; --accent-dark: #3E7FC4; --accent-soft: rgba(92, 155, 221, .16); --accent-softer: rgba(92, 155, 221, .08);
+    --gold: #E9BD6B; --gold-text: #E9BD6B; --gold-soft: rgba(224, 165, 54, .16);
+    --ink: #EDEFF3; --muted: #A6ACB6; --faint: #6C7380;
+    --surface: #1B1F27; --surface-2: #20242E; --bg: #0F1216;
+    --line: #2B2F39; --line-strong: #3A4150;
+    --green: #4CBE82; --green-soft: rgba(46, 157, 92, .16); --green-text: #7CD6A3;
+    --amber: #E0A12E; --amber-soft: rgba(224, 161, 46, .16); --amber-text: #E9BD6B;
+    --red: #E17070; --red-soft: rgba(207, 70, 70, .16); --red-text: #F0A0A0;
+    --glass: rgba(27, 31, 39, .5); --glass-strong: rgba(27, 31, 39, .68); --glass-border: rgba(255, 255, 255, .09);
+    --glass-shadow: 0 10px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
+    --blob-1: rgba(92, 155, 221, .22); --blob-2: rgba(233, 189, 107, .16);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --accent: #5C9BDD; --accent-dark: #3E7FC4; --accent-soft: rgba(92, 155, 221, .16); --accent-softer: rgba(92, 155, 221, .08);
+  --gold: #E9BD6B; --gold-text: #E9BD6B; --gold-soft: rgba(224, 165, 54, .16);
+  --ink: #EDEFF3; --muted: #A6ACB6; --faint: #6C7380;
+  --surface: #1B1F27; --surface-2: #20242E; --bg: #0F1216;
+  --line: #2B2F39; --line-strong: #3A4150;
+  --green: #4CBE82; --green-soft: rgba(46, 157, 92, .16); --green-text: #7CD6A3;
+  --amber: #E0A12E; --amber-soft: rgba(224, 161, 46, .16); --amber-text: #E9BD6B;
+  --red: #E17070; --red-soft: rgba(207, 70, 70, .16); --red-text: #F0A0A0;
+  --glass: rgba(27, 31, 39, .5); --glass-strong: rgba(27, 31, 39, .68); --glass-border: rgba(255, 255, 255, .09);
+  --glass-shadow: 0 10px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
+  --blob-1: rgba(92, 155, 221, .22); --blob-2: rgba(233, 189, 107, .16);
+  color-scheme: dark;
+}

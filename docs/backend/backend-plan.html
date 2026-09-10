@@ -1,0 +1,413 @@
+<title>SNSW Dashboards Backend Blueprint</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#F6F7F5; --panel:#FFFFFF; --ink:#1C2028; --muted:#5F6B7A; --faint:#8C97A6; --line:#DCE1E7; --line-strong:#C3CAD3;
+    --accent:#0D5CAB; --accent-soft:#E7F0FA; --derived:#B67A12; --derived-soft:#FBF1DC; --write:#2E7D4F; --write-soft:#E4F3EA;
+    --code-bg:#EEF1F4;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --paper:#11151B; --panel:#181D25; --ink:#E4E8EE; --muted:#9AA5B4; --faint:#6F7A89; --line:#2A313B; --line-strong:#3A424E;
+    --accent:#6FAAE8; --accent-soft:#1B2A3C; --derived:#E0A536; --derived-soft:#2E2718; --write:#6CC28E; --write-soft:#18291E;
+    --code-bg:#1F252E;
+  }}
+  :root[data-theme="dark"]{
+    --paper:#11151B; --panel:#181D25; --ink:#E4E8EE; --muted:#9AA5B4; --faint:#6F7A89; --line:#2A313B; --line-strong:#3A424E;
+    --accent:#6FAAE8; --accent-soft:#1B2A3C; --derived:#E0A536; --derived-soft:#2E2718; --write:#6CC28E; --write-soft:#18291E;
+    --code-bg:#1F252E;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  code,.mono,table.catalog td:first-child,table.api td:first-child{font-family:'IBM Plex Mono','SFMono-Regular',Consolas,Menlo,monospace;font-size:.86em}
+  code{background:var(--code-bg);padding:.1em .35em;border-radius:4px}
+  .page{max-width:1120px;margin:0 auto;padding:40px 28px 80px}
+  .col{max-width:860px}
+  header.masthead{border-bottom:1px solid var(--line-strong);padding-bottom:22px;margin-bottom:36px}
+  .eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:2rem;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:.35em 0 .4em;text-wrap:balance}
+  .lede{font-size:1.05rem;color:var(--muted);max-width:66ch;margin:0}
+  .rule-box{margin:26px 0 0;padding:16px 20px;border-left:4px solid var(--accent);background:var(--panel);border-radius:0 8px 8px 0;font-size:1.05rem;font-weight:600;max-width:70ch}
+  .rule-box small{display:block;font-weight:400;color:var(--muted);margin-top:6px;font-size:.9rem}
+  section{margin-top:52px}
+  h2{font-size:1.3rem;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;text-wrap:balance}
+  .sub{color:var(--muted);margin:0 0 18px;max-width:70ch}
+  p{max-width:70ch}
+  figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px 12px;overflow-x:auto}
+  figure svg{display:block;max-width:100%;height:auto}
+  figcaption{font-size:.82rem;color:var(--muted);margin-top:12px;max-width:80ch}
+  .mermaid{margin:0;background:transparent}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:14px;height:10px;border-radius:2px;display:inline-block}
+  .sw.write{background:var(--write)} .sw.derived{background:var(--derived)} .sw.accent{background:var(--accent)}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th{text-align:left;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 14px;border-bottom:1px solid var(--line-strong);background:var(--code-bg)}
+  td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .tag.adopt{background:var(--accent-soft);color:var(--accent)} .tag.defer{background:var(--code-bg);color:var(--muted)} .tag.added{background:var(--write-soft);color:var(--write)} .tag.widen{background:var(--derived-soft);color:var(--derived)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .two > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .two h3{margin:0 0 8px;font-size:.95rem}
+  .two ul{margin:0;padding-left:18px;color:var(--muted)}
+  .two li{margin:4px 0}
+  .two .w h3{color:var(--write)} .two .r h3{color:var(--derived)}
+  ol.build{padding-left:20px;max-width:70ch} ol.build li{margin:8px 0}
+  .wrapx{overflow-x:auto}
+  @media (max-width:760px){ .two{grid-template-columns:1fr} .page{padding:24px 16px 60px} h1{font-size:1.6rem} }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <div class="eyebrow">SNSW Adventist Education · Dashboards · Backend plan · September 2026</div>
+    <h1>One spine for every number: unit → period → version → account → amount</h1>
+    <p class="lede">The backend that replaces browser storage. It stores the operating statement at line-item grain, calculates every card on the server, and never lets a derived figure be typed. Proposed, not built.</p>
+    <div class="rule-box">Store source facts at the lowest trustworthy grain. Calculate everything else.
+      <small>Only raw-data endpoints accept writes. Every dashboard endpoint is read-only and computed. Approved report versions are immutable; a revised report is a new version.</small></div>
+  </header>
+
+  <section class="col">
+    <div class="eyebrow">Mechanism</div>
+    <h2>MVC with a service layer: two paths through the stack</h2>
+    <p class="sub">A read asks a controller for a computed view; a write lands on a draft version's line items. Both go through the same services, so the maths lives in one place and is unit-tested against the four existing boards.</p>
+  </section>
+  <figure>
+    <svg viewBox="0 0 1080 520" role="img" aria-label="Layered backend: browser app calls controllers; controllers call services; services read and write through repositories to PostgreSQL; presenters shape JSON on the way back; sync jobs for MYOB, Synergetic and Hubworks feed the import service" style="color:var(--ink);font-family:Inter,sans-serif;font-size:12px">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+        <marker id="arrw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2E7D4F"/></marker>
+        <marker id="arrd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#B67A12"/></marker>
+      </defs>
+      <!-- client -->
+      <rect x="20" y="200" width="150" height="110" rx="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <text x="95" y="232" text-anchor="middle" font-weight="700">Browser app</text>
+      <text x="95" y="252" text-anchor="middle" fill="var(--muted)">app/ (vanilla JS)</text>
+      <text x="95" y="270" text-anchor="middle" fill="var(--muted)">SNSW.store → API client</text>
+      <text x="95" y="288" text-anchor="middle" fill="var(--muted)">formats, never calculates</text>
+
+      <!-- API boundary -->
+      <rect x="220" y="30" width="600" height="450" rx="12" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="5 4"/>
+      <text x="236" y="52" fill="var(--muted)" font-size="11" letter-spacing="1.5">API SERVICE · NODE + TYPESCRIPT</text>
+
+      <!-- controllers -->
+      <rect x="250" y="80" width="200" height="120" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2"/>
+      <text x="350" y="104" text-anchor="middle" font-weight="700">Controllers</text>
+      <text x="350" y="124" text-anchor="middle" fill="var(--muted)">auth · validate · route</text>
+      <text x="350" y="146" text-anchor="middle" class="mono" font-size="11">FinanceBoard · LineItems</text>
+      <text x="350" y="162" text-anchor="middle" font-size="11">Summary · Databoard · Imports</text>
+      <text x="350" y="178" text-anchor="middle" font-size="11">Reconciliations · Versions · Auth</text>
+
+      <!-- views / presenters -->
+      <rect x="250" y="330" width="200" height="120" rx="8" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+      <text x="350" y="354" text-anchor="middle" font-weight="700">Views (presenters)</text>
+      <text x="350" y="374" text-anchor="middle" fill="var(--muted)">JSON contracts the app already reads</text>
+      <text x="350" y="396" text-anchor="middle" font-size="11">OverviewPresenter · LineItemsPresenter</text>
+      <text x="350" y="412" text-anchor="middle" font-size="11">SummaryPresenter · DataboardPresenter</text>
+      <text x="350" y="430" text-anchor="middle" font-size="11" fill="var(--muted)">minor units → $, status → light</text>
+
+      <!-- services -->
+      <rect x="500" y="80" width="290" height="180" rx="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <text x="645" y="104" text-anchor="middle" font-weight="700">Services (the maths)</text>
+      <text x="645" y="124" text-anchor="middle" fill="var(--muted)">pure functions over model data</text>
+      <text x="520" y="150" font-size="11">Rollup · Variance · Metric (EBIDA, margin, salaries)</text>
+      <text x="520" y="168" font-size="11">Reconciliation (declared vs calculated)</text>
+      <text x="520" y="186" font-size="11">Consolidation (all schools, period compatibility)</text>
+      <text x="520" y="204" font-size="11">Status (finance light, overall = worst-of)</text>
+      <text x="520" y="222" font-size="11">Import (parse → map → validate → draft version)</text>
+      <text x="520" y="240" font-size="11">Workflow (draft → review → approved)</text>
+
+      <!-- models -->
+      <rect x="500" y="330" width="290" height="120" rx="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <text x="645" y="354" text-anchor="middle" font-weight="700">Models (entities + repositories)</text>
+      <text x="645" y="374" text-anchor="middle" fill="var(--muted)">own all SQL · enforce invariants</text>
+      <text x="520" y="398" font-size="11">FinancialFact · ReportVersion · Account · ReportingGroup</text>
+      <text x="520" y="416" font-size="11">MetricDefinition · Obligation · Note · WeeklyBoard …</text>
+      <text x="520" y="434" font-size="11" fill="var(--muted)">signs, currency, uniqueness, immutability</text>
+
+      <!-- database -->
+      <rect x="870" y="330" width="190" height="120" rx="8" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <text x="965" y="354" text-anchor="middle" font-weight="700">PostgreSQL</text>
+      <text x="965" y="374" text-anchor="middle" fill="var(--muted)">schema.sql · migrations</text>
+      <text x="965" y="396" text-anchor="middle" font-size="11">facts · versions · mappings</text>
+      <text x="965" y="414" text-anchor="middle" font-size="11">databoard · audit</text>
+      <text x="965" y="434" text-anchor="middle" font-size="11" fill="var(--muted)">trigger: approved = immutable</text>
+
+      <!-- jobs -->
+      <rect x="870" y="80" width="190" height="180" rx="8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 3"/>
+      <text x="965" y="104" text-anchor="middle" font-weight="700">Sync jobs (phase 2)</text>
+      <text x="965" y="128" text-anchor="middle" font-size="11">MYOB · AccountRegister,</text>
+      <text x="965" y="144" text-anchor="middle" font-size="11">AccountBudget (monthly)</text>
+      <text x="965" y="168" text-anchor="middle" font-size="11">Synergetic · enrolments,</text>
+      <text x="965" y="184" text-anchor="middle" font-size="11">family debtors</text>
+      <text x="965" y="208" text-anchor="middle" font-size="11">Hubworks · occupancy,</text>
+      <text x="965" y="224" text-anchor="middle" font-size="11">attendance, CCS</text>
+      <text x="965" y="246" text-anchor="middle" font-size="11" fill="var(--muted)">each run = import batch → draft</text>
+
+      <!-- arrows: read path (accent) -->
+      <path d="M170 235 L250 150" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr)" style="color:var(--accent)"/>
+      <text x="160" y="182" fill="var(--accent)" font-size="11">GET overview / summary / databoard</text>
+      <path d="M450 140 L500 140" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#arr)"/>
+      <text x="475" y="132" text-anchor="middle" font-size="10" fill="var(--muted)">call</text>
+      <path d="M645 260 L645 330" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#arr)"/>
+      <text x="660" y="300" font-size="10" fill="var(--muted)">load facts</text>
+      <path d="M790 390 L870 390" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#arr)"/>
+      <text x="830" y="382" text-anchor="middle" font-size="10" fill="var(--muted)">SQL</text>
+      <path d="M500 390 L450 390" fill="none" stroke="var(--derived)" stroke-width="1.6" marker-end="url(#arrd)"/>
+      <text x="475" y="410" text-anchor="middle" font-size="10" fill="var(--derived)">computed</text>
+      <path d="M250 390 L170 285" fill="none" stroke="var(--derived)" stroke-width="1.6" marker-end="url(#arrd)"/>
+      <text x="120" y="330" fill="var(--derived)" font-size="11">JSON view (read-only)</text>
+
+      <!-- write path (green) -->
+      <path d="M170 255 L250 190" fill="none" stroke="var(--write)" stroke-width="1.6" marker-end="url(#arrw)"/>
+      <text x="90" y="345" fill="var(--write)" font-size="11">PATCH line items,</text>
+      <text x="90" y="360" fill="var(--write)" font-size="11">notes, databoard fields</text>
+      <text x="90" y="375" fill="var(--write)" font-size="11">→ DRAFT version only</text>
+
+      <!-- jobs to import service -->
+      <path d="M870 200 L790 200" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arr)"/>
+      <text x="830" y="192" text-anchor="middle" font-size="10" fill="var(--muted)">nightly / monthly</text>
+    </svg>
+    <figcaption>Blue: a read request. The controller calls a service, the service loads facts through repositories, and a presenter returns the JSON shape the app already understands. Green: a write, which only ever reaches a DRAFT report version or a raw databoard field. Gold: everything computed. Sync jobs use the same import service as a manual upload.</figcaption>
+    <div class="legend"><span><i class="sw accent"></i>read path</span><span><i class="sw write"></i>write path (raw data only)</span><span><i class="sw derived"></i>computed, never typed</span></div>
+  </figure>
+
+  <section class="col">
+    <div class="eyebrow">Sequence</div>
+    <h2>One edit, four screens: how a line item propagates</h2>
+    <p class="sub">The finance officer changes one tuition line on Border Christian College. Nothing else is typed; the summary and the databoard move because they are computed from the same facts on the next read.</p>
+  </section>
+  <figure>
+<pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as Finance officer (browser)
+  participant C as LineItemsController
+  participant W as WorkflowService
+  participant R as FactRepository
+  participant DB as PostgreSQL
+  participant S as Rollup + Variance + Status services
+  participant P as Presenters
+
+  U->>C: PATCH /finance/bcc/line-items {account 0110, ACTUAL, YTD, +100,000}
+  C->>W: ensure DRAFT version for BCC / June 2026
+  W->>DB: report_versions: latest APPROVED → copy facts into new DRAFT (if none open)
+  C->>R: upsert fact (draft, bcc, Jun-26, 0110, ACTUAL, YTD)
+  R->>DB: insert/update financial_facts · audit_events
+  DB-->>C: ok
+  C-->>U: 204 (draft saved)
+
+  U->>C: POST /finance/bcc/versions/{id}/submit → approve
+  C->>W: run reconciliation checks, mark APPROVED, supersede v1
+  W->>DB: reconciliation_checks · report_versions
+  Note over DB: trigger now rejects any change to this version's facts
+
+  U->>C: GET /finance/summary  (versionMode = LATEST_APPROVED)
+  C->>S: consolidate 4 units → totals, variances, finance lights
+  S->>R: load facts + mappings + metric definitions
+  R->>DB: select …
+  S-->>P: computed model
+  P-->>U: summary JSON (BCC surplus +100,000; combined surplus +100,000)
+
+  U->>C: GET /databoard/latest
+  C->>S: operating result, per-school budget/variance, Finance + Overall lights
+  S-->>P: raw board fields + derived figures
+  P-->>U: databoard JSON (BCC card and Finance light updated)
+</pre>
+    <figcaption>The write touches one row. Every later read recomputes from facts, so the Overview, the all-schools summary and the databoard agree by construction. The approval step is what makes the change visible to principals and the board.</figcaption>
+  </figure>
+
+  <section class="col">
+    <div class="eyebrow">Entity model · finance core</div>
+    <h2>Facts, the structures that give them meaning, and the checks around them</h2>
+    <p class="sub">A fact is one amount at (version, unit, period, account, scenario, basis). Reporting groups and metric definitions are effective-dated so last year's report does not change when a mapping changes this year.</p>
+  </section>
+  <figure>
+<pre class="mermaid">
+erDiagram
+  organisations ||--o{ operating_units : has
+  organisations ||--o{ fiscal_years : defines
+  fiscal_years ||--o{ fiscal_periods : contains
+  organisations ||--o{ accounts : "chart of accounts"
+  organisations ||--o{ reporting_groups : defines
+  accounts ||--o{ account_group_mappings : "effective-dated"
+  reporting_groups ||--o{ account_group_mappings : receives
+  organisations ||--o{ metric_definitions : "EBIDA, salaries, thresholds"
+
+  operating_units ||--o{ reporting_snapshots : "per period"
+  fiscal_periods ||--o{ reporting_snapshots : "as of"
+  reporting_snapshots ||--o{ report_versions : "v1, v2 …"
+  import_batches ||--o{ report_versions : creates
+  import_batches ||--o{ import_rows : contains
+  source_systems ||--o{ import_batches : "MANUAL, MYOB, SYNERGETIC, HUBWORKS"
+  source_systems ||--o{ source_account_mappings : "source code → account"
+
+  report_versions ||--o{ financial_facts : holds
+  accounts ||--o{ financial_facts : "account"
+  report_versions ||--o{ reported_totals : "page-1 figures"
+  report_versions ||--o{ reconciliation_checks : "declared vs calculated"
+  report_versions ||--o{ commentary_notes : explains
+  operating_units ||--o{ financial_obligations : "loans, leases"
+  financial_obligations ||--o{ obligation_schedule_lines : schedule
+  operating_units ||--o{ receivables_snapshots : "family debtors"
+
+  financial_facts {
+    uuid report_version_id
+    uuid operating_unit_id
+    uuid fiscal_period_id
+    uuid account_id
+    text scenario "ACTUAL | BUDGET | FORECAST | PRIOR_YEAR"
+    text period_basis "YTD | FULL_YEAR | EOY_ESTIMATE | PERIOD"
+    bigint amount_minor
+    char currency_code
+  }
+  report_versions {
+    int version_no
+    text status "DRAFT | IN_REVIEW | APPROVED | SUPERSEDED"
+    uuid supersedes_version_id
+    uuid approved_by
+  }
+  reconciliation_checks {
+    text check_code
+    bigint expected_minor "declared"
+    bigint actual_minor "calculated"
+    bigint difference_minor
+    text status "PASS | WARNING | FAILED | RESOLVED | WAIVED"
+  }
+  metric_definitions {
+    text code "EBIDA_ADDBACK | SALARY_SUBLINE | FINANCE_LIGHT"
+    jsonb definition_json
+    date effective_from
+  }
+</pre>
+    <figcaption>The four Details-tab columns are four facts on one account: (BUDGET, YTD), (ACTUAL, YTD), (BUDGET, FULL_YEAR), (FORECAST, EOY_ESTIMATE). Group totals, KPIs and the EBIDA add-back are never rows here; they are computed from facts through the mappings and metric definitions.</figcaption>
+  </figure>
+
+  <section class="col">
+    <div class="eyebrow">Entity model · weekly databoard and access</div>
+    <h2>Only the judgement fields are stored</h2>
+    <p class="sub">Four lights per school are opinions and are stored. Finance and Overall lights, the operating result and each school's budget and variance are read from the finance side at request time.</p>
+  </section>
+  <figure>
+<pre class="mermaid">
+erDiagram
+  organisations ||--o{ weekly_boards : "week ending"
+  weekly_boards ||--o{ board_health_ratings : "ENROLMENTS, STAFFING, BUILDINGS, WHS"
+  weekly_boards ||--o{ board_cell_notes : "notes on derived cells"
+  weekly_boards ||--o{ cash_position_items : "cash, loans, reserves"
+  weekly_boards ||--o{ unit_snapshots : "building, staffing, loan text"
+  weekly_boards ||--o{ board_items : "RISK, WHS, CELEBRATION"
+  operating_units ||--o{ board_health_ratings : rates
+  operating_units ||--o{ unit_snapshots : describes
+  operating_units ||--o{ enrolment_census : "sparkline points"
+  source_systems ||--o{ enrolment_census : "MANUAL now, SYNERGETIC / HUBWORKS later"
+
+  organisations ||--o{ users : has
+  roles ||--o{ users : "ADMIN, FINANCE, PRINCIPAL, BOARD"
+  users ||--o{ user_unit_access : "principal → own school"
+  operating_units ||--o{ user_unit_access : scopes
+  users ||--o{ audit_events : acts
+  users ||--o{ report_versions : approves
+
+  board_health_ratings {
+    text measure "ENROLMENTS | STAFFING | BUILDINGS | WHS"
+    text rating "GREEN | AMBER | RED"
+    text note
+  }
+  cash_position_items {
+    text item_kind "CASH_ON_HAND | LOAN_BALANCES | RESERVES"
+    bigint amount_minor
+    text change_note
+  }
+  board_items {
+    text item_kind "RISK | WHS | CELEBRATION"
+    text rating
+    text title
+    text owner
+  }
+</pre>
+    <figcaption>There is no column for the Finance light, the Overall light or the operating result. The StatusService derives them from the approved finance version, which is the same rule the frontend enforces today.</figcaption>
+  </figure>
+
+  <section class="col">
+    <div class="eyebrow">Contract</div>
+    <h2>What accepts a write, what only shows a result</h2>
+    <div class="two">
+      <div class="w"><h3>Writes (raw data)</h3>
+        <ul>
+          <li>line items on a DRAFT report version (values, codes, names, add, remove)</li>
+          <li>loans and leases, family debtor snapshot, period label</li>
+          <li>commentary notes and accountant queries</li>
+          <li>databoard: cash, loans and reserves tiles; building, staffing, enrolment details; the four judgement lights and cell notes; risks, WHS items, wins</li>
+          <li>admin, versioned: account mappings, metric definitions</li>
+        </ul></div>
+      <div class="r"><h3>Read-only (computed)</h3>
+        <ul>
+          <li>Overview KPIs, category totals, charts, going well / needs attention</li>
+          <li>salary sub-line, EBIDA add-back, operating margin</li>
+          <li>all-schools summary and consolidated totals</li>
+          <li>reconciliation checks and their status</li>
+          <li>databoard: operating result, school budget and variance, Finance light, Overall light</li>
+        </ul></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Source review</div>
+    <h2 class="col">The Perplexity model: kept, trimmed, extended</h2>
+    <p class="sub">Its spine is right and matches what the frontend already does. Three areas it did not cover are added; five that are premature are deferred with a reason.</p>
+    <div class="wrapx"><table>
+      <thead><tr><th>Proposal</th><th>Decision</th><th>Reason</th></tr></thead>
+      <tbody>
+        <tr><td>Facts at (entity, period, account, scenario, basis), money in minor units</td><td><span class="tag adopt">adopt</span></td><td>Exactly the operating report's content; matches the line-item rule already in the app</td></tr>
+        <tr><td>Versioned report snapshots; approved never overwritten</td><td><span class="tag adopt">adopt</span></td><td>Revised June reports happen; history must explain old exports</td></tr>
+        <tr><td>Declared page-1 totals kept beside calculated roll-up; reconciliation checks</td><td><span class="tag adopt">adopt</span></td><td>Four real mismatches already found in the source files</td></tr>
+        <tr><td>Effective-dated account → reporting-group mappings</td><td><span class="tag adopt">adopt</span></td><td>Group definitions change between years</td></tr>
+        <tr><td><code>metric_definitions</code> for the EBIDA add-back</td><td><span class="tag widen">widen</span></td><td>Also holds salary sub-line codes and light thresholds; no formula in code</td></tr>
+        <tr><td>Import batches, rows, source account mappings</td><td><span class="tag adopt">adopt</span></td><td>Same tables serve uploads and the three syncs</td></tr>
+        <tr><td>Separate <code>legal_entities</code> table</td><td><span class="tag defer">defer</span></td><td>One conference entity; a column on the unit suffices until the ELC reports separately</td></tr>
+        <tr><td><code>budget_versions</code>, <code>forecast_versions</code></td><td><span class="tag defer">defer</span></td><td>Budget, annual budget and EOY estimate already arrive as facts; authoring budgets is phase 3</td></tr>
+        <tr><td>Fund, cost-centre, program, project dimensions on every fact</td><td><span class="tag defer">defer</span></td><td>Absent from every source report; nullable keys for no gain</td></tr>
+        <tr><td>Inter-entity eliminations</td><td><span class="tag defer">defer</span></td><td>Account 2955 is flagged <code>is_intercompany</code>; elimination runs are phase 2</td></tr>
+        <tr><td>Full receivables subledger</td><td><span class="tag defer">defer</span></td><td>Synergetic owns billing; import debtor snapshots</td></tr>
+        <tr><td>Weekly education databoard</td><td><span class="tag added">added</span></td><td>Half the product; six tables with only judgement fields stored</td></tr>
+        <tr><td>Source systems, connections, sync jobs</td><td><span class="tag added">added</span></td><td>The brief's phase 2 target: MYOB, Synergetic, Hubworks</td></tr>
+        <tr><td>Users, roles, per-unit access, audit</td><td><span class="tag added">added</span></td><td>Principals see their school; finance edits; board reads all</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Surface</div>
+    <h2 class="col">API v1</h2>
+    <p class="sub">Every reporting call carries explicit context: unit or units, period, and <code>versionMode</code> (<code>LATEST_APPROVED</code> for readers, <code>DRAFT</code> for editors).</p>
+    <div class="wrapx"><table class="api">
+      <thead><tr><th>Endpoint</th><th>Kind</th><th>Serves</th></tr></thead>
+      <tbody>
+        <tr><td>GET /finance/summary</td><td><span class="tag widen">computed</span></td><td>All-schools tiles, table, chart, cross-school attention list</td></tr>
+        <tr><td>GET /finance/:unit/overview</td><td><span class="tag widen">computed</span></td><td>KPIs, categories, salary sub-line, EBIDA, reconciliation card</td></tr>
+        <tr><td>GET /finance/:unit/line-items</td><td><span class="tag adopt">read</span></td><td>Details tab for a version</td></tr>
+        <tr><td>PATCH /finance/:unit/line-items</td><td><span class="tag added">write</span></td><td>Batch upsert and delete on the DRAFT version</td></tr>
+        <tr><td>POST /finance/:unit/versions · /:id/submit · /:id/approve</td><td><span class="tag added">write</span></td><td>Workflow; approval runs and stores reconciliation checks</td></tr>
+        <tr><td>GET /finance/:unit/reconciliations · POST /:id/resolve</td><td><span class="tag widen">computed</span></td><td>Data-quality card</td></tr>
+        <tr><td>/finance/:unit/obligations · /notes · PUT /receivables</td><td><span class="tag added">write</span></td><td>Loans and leases, commentary, family debtors</td></tr>
+        <tr><td>GET /databoard/latest · GET /databoard/:weekEnding</td><td><span class="tag widen">computed</span></td><td>Raw fields plus derived lights and figures</td></tr>
+        <tr><td>PUT /databoard/:weekEnding · POST /publish</td><td><span class="tag added">write</span></td><td>Raw fields only; publishing freezes the week</td></tr>
+        <tr><td>POST /imports · GET /imports/:id · POST /imports/:id/publish</td><td><span class="tag added">write</span></td><td>Upload → preview and mapping gaps → DRAFT version</td></tr>
+        <tr><td>GET /units · GET /periods · POST /auth/login</td><td><span class="tag adopt">read</span></td><td>Registry, calendar, sign-in</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="col">
+    <div class="eyebrow">Order of work</div>
+    <h2>Build so that step two reproduces today's dashboard exactly</h2>
+    <ol class="build">
+      <li>Schema, migrations, seed: four units, FY2026, the chart of accounts and groups taken from the four boards, metric definitions for EBIDA and salaries.</li>
+      <li>Loader that imports the existing <code>app/data/finance-*.js</code> files as version 1 APPROVED per unit. The acceptance test is that every number on every screen matches the current frontend to the dollar.</li>
+      <li>Services with unit tests against those four boards: roll-up, variance, EBIDA, salary sub-line, reconciliation, consolidation, status.</li>
+      <li>Read endpoints and presenters; then write endpoints and workflow; then auth, per-unit access and audit.</li>
+      <li>Frontend wiring: replace <code>SNSW.store.load / save</code> with the API client. The views do not change.</li>
+      <li>Phase 2: MYOB, Synergetic and Hubworks sync jobs on the same import tables; amortisation rules as metric definitions once the finance team specifies them.</li>
+    </ol>
+  </section>
+</div>
