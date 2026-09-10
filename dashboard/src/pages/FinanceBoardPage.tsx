@@ -22,6 +22,8 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const [draft, setDraft] = useState<Board | null>(null);
   const [baseline, setBaseline] = useState<Board | null>(null);
   const [hideZeros, setHideZeros] = useState(true);
+  // The period's pre-edit value, held so its own cancel can put it back. null = not being edited.
+  const [periodEdit, setPeriodEdit] = useState<string | null>(null);
 
   // Readers see the latest approved version; an editor opens (or continues) the draft.
   const approved = useBoard(unit, "LATEST_APPROVED");
@@ -31,18 +33,20 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const save = useSaveBoard(unit);
   const toast = useToast();
 
-  useEffect(() => { setEditing(false); setDraft(null); setBaseline(null); }, [unit]);
+  useEffect(() => { setEditing(false); setDraft(null); setBaseline(null); setPeriodEdit(null); }, [unit]);
   useEffect(() => {
     if (editing && draftBoard.data && !draft) { setDraft(clone(draftBoard.data)); setBaseline(clone(draftBoard.data)); }
   }, [editing, draftBoard.data, draft]);
 
-  const changed = draft && baseline ? countChangedRows(baseline, draft) : 0;
+  // Line edits get a count; everything else typed on the Overview just reads as unsaved.
+  const changedLines = draft && baseline ? countChangedRows(baseline, draft) : 0;
+  const dirty = !!draft && !!baseline && JSON.stringify(draft) !== JSON.stringify(baseline);
   useEffect(() => {
-    if (!changed) return;
+    if (!dirty) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [changed]);
+  }, [dirty]);
 
   if (approved.isLoading || units.isLoading) return <Loading what="finance board" />;
   if (approved.error || !approved.data) return <ErrorState error={approved.error} retry={() => approved.refetch()} />;
@@ -51,7 +55,8 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const editable = editing && !!draft;
   const openDraft = versions.data?.find((v) => v.status === "DRAFT" || v.status === "IN_REVIEW");
 
-  const endSession = () => { setEditing(false); setDraft(null); setBaseline(null); };
+  const onBeginEdit = () => setEditing(true);
+  const endSession = () => { setEditing(false); setDraft(null); setBaseline(null); setPeriodEdit(null); };
 
   const doSave = async (publish: boolean) => {
     if (!draft) return;
@@ -64,7 +69,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   };
 
   const discard = () => {
-    if (changed && !confirm(`Discard ${changed} unsaved line change(s) and go back to the approved figures?`)) return;
+    if (dirty && !confirm("Discard the unsaved changes and go back to the approved figures?")) return;
     endSession();
   };
 
@@ -75,23 +80,27 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
         eyebrow={`Finance · ${school?.type === "EARLY_LEARNING_CENTRE" ? "Early learning centre" : "School"} · ${school?.location ?? ""}`}
         title={board.meta.unitName}
         pills={<>
-          <Pill label="As at">{tab === "overview" && editable && draft ? <input className="pill-input" value={draft.meta.asAt} onChange={(e) => setDraft({ ...draft, meta: { ...draft.meta, asAt: e.target.value } })} /> : board.meta.asAt}</Pill>
+          <Pill label="As at">
+            {periodEdit !== null && editable && draft ? <>
+              <input className="pill-input" value={draft.meta.asAt} aria-label="Reporting period" autoFocus
+                onChange={(e) => setDraft({ ...draft, meta: { ...draft.meta, asAt: e.target.value } })} />
+              <span className="rowacts">
+                <button type="button" className="rowbtn ok" title="Keep this period" aria-label="Keep this period" onClick={() => setPeriodEdit(null)}>✓</button>
+                <button type="button" className="rowbtn no" title="Cancel" aria-label="Cancel editing the period" onClick={() => { setDraft({ ...draft, meta: { ...draft.meta, asAt: periodEdit } }); setPeriodEdit(null); }}>✕</button>
+              </span>
+            </> : <>
+              {board.meta.asAt}
+              <button type="button" className="rowbtn pencil pill-pencil" title="Edit the reporting period" aria-label="Edit the reporting period"
+                onClick={() => { if (!editable) onBeginEdit(); setPeriodEdit(board.meta.asAt); }}>✎</button>
+            </>}
+          </Pill>
           <Pill label="Version" title={board.meta.approvedAt ? `Approved ${when(board.meta.approvedAt)}` : `Last saved ${when(board.meta.lastSaved)}`}>
             v{board.meta.version} · {status === "APPROVED" ? "approved" : status.toLowerCase().replace("_", " ")}
-            {!editing && openDraft && <> <Badge tone="amber" title="A draft is open; editing a line continues it">draft v{openDraft.versionNo} open</Badge></>}
-            {changed > 0 && <> <Badge tone="amber" title="Edited but not saved">unsaved</Badge></>}
+            {!editing && openDraft && <> <Badge tone="amber" title="A draft is open; editing anything continues it">draft v{openDraft.versionNo} open</Badge></>}
+            {dirty && <> <Badge tone="amber" title="Edited but not saved">unsaved</Badge></>}
           </Pill>
         </>}
-        actions={tab === "details" ? (
-          <Button onClick={() => window.print()}>Print</Button>
-        ) : editing ? <>
-          <Button variant="primary" onClick={() => doSave(true)} disabled={save.isPending}>Save &amp; publish</Button>
-          <Button onClick={() => doSave(false)} disabled={save.isPending}>Save draft</Button>
-          <Button onClick={discard}>Cancel</Button>
-        </> : <>
-          <Button variant="primary" onClick={() => setEditing(true)}>✎ Edit board</Button>
-          <Button onClick={() => window.print()}>Print</Button>
-        </>}
+        actions={<Button onClick={() => window.print()}>Print</Button>}
         tabs={<>
           <div className="tabs">
             <NavLink end to={`/finance/${unit}`} className="tab">Overview</NavLink>
@@ -102,16 +111,19 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
       />
 
       {board.meta.placeholder && <Banner tone="amber"><b>Placeholder figures.</b> This board's numbers are for layout only and were not taken from an operating report. Replace them before sharing.</Banner>}
-      {editing && tab === "overview" && <Banner tone="green"><b>Edit mode.</b> Every figure on this tab is calculated from the Details tab. Only the period, loans, leases, family debtors and notes are typed here.</Banner>}
-      {editable && tab === "details" && status !== "APPROVED" && <Banner tone="amber"><b>You are editing draft v{board.meta.version}.</b> It was opened earlier and readers still see the approved figures until it is published.</Banner>}
+      {editable && status !== "APPROVED" && <Banner tone="amber"><b>You are editing draft v{board.meta.version}.</b> It was opened earlier and readers still see the approved figures until it is published.</Banner>}
       {editing && draftBoard.isLoading && <Loading what="draft" />}
 
       {tab === "overview"
-        ? <OverviewTab unit={unit} board={board} overview={overview.data} editing={editing} onChange={(b) => setDraft(b)} />
-        : <DetailsTab board={board} editable={editable} hideZeros={hideZeros} onChange={(b) => setDraft(b)} onBeginEdit={() => setEditing(true)} />}
+        ? <OverviewTab unit={unit} board={board} overview={overview.data} editable={editable} onChange={(b) => setDraft(b)} onBeginEdit={onBeginEdit} />
+        : <DetailsTab board={board} editable={editable} hideZeros={hideZeros} onChange={(b) => setDraft(b)} onBeginEdit={onBeginEdit} />}
 
-      {tab === "details" && changed > 0 && (
-        <SaveBar count={changed} saving={save.isPending} onSaveDraft={() => doSave(false)} onPublish={() => doSave(true)} onDiscard={discard} />
+      {/* Also shown for an unchanged open draft, which still needs a way to be published. */}
+      {editable && (dirty || status !== "APPROVED") && (
+        <SaveBar
+          label={dirty ? (changedLines > 0 ? `${changedLines} line${changedLines === 1 ? "" : "s"} edited` : "Unsaved changes") : `Draft v${board.meta.version} saved, not published`}
+          discardLabel={dirty ? "Discard" : "Close"}
+          saving={save.isPending} onSaveDraft={() => doSave(false)} onPublish={() => doSave(true)} onDiscard={discard} />
       )}
 
       <div className="foot">Adventist Education South New South Wales · Figures are indicative — the operating statement remains the authoritative record.</div>

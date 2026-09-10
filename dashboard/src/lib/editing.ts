@@ -60,6 +60,9 @@ export function countChangedRows(a: Board, b: Board): number {
   return n;
 }
 
+export function getPath(board: Board, path: string): unknown {
+  return path.split(".").reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], board);
+}
 export function setPath(board: Board, path: string, value: unknown): Board {
   const b = clone(board);
   const parts = path.split(".");

@@ -1,15 +1,53 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PairedBars } from "@/components/charts";
-import { Button, Card, Chip, Dot, Empty, Kpi, NumberInput, TextArea, TextInput } from "@/components/ui";
+import { Button, Card, Chip, Dot, EditTools, Empty, Kpi, NumberInput, TextArea, TextInput } from "@/components/ui";
 import { fmt, fmt$, pct } from "@/lib/format";
-import { setPath } from "@/lib/editing";
+import { clone, getPath, setPath } from "@/lib/editing";
 import type { Board, Overview, Obligation } from "@/lib/types";
 
-export function OverviewTab({ unit, board, overview, editing, onChange }: { unit: string; board: Board; overview?: Overview; editing: boolean; onChange: (b: Board) => void }) {
+/** Each card that holds typed figures owns its own pencil; these are the paths it may write to. */
+type CardKey = "loans" | "leases" | "lookingBack" | "current" | "upcoming";
+const CARD_PATHS: Record<CardKey, string[]> = {
+  loans: ["loans"],
+  leases: ["leases"],
+  lookingBack: ["priorYear"],
+  current: ["comments.current"],
+  upcoming: ["comments.upcoming"],
+};
+
+export function OverviewTab({ unit, board, overview, editable, onChange, onBeginEdit }: {
+  unit: string; board: Board; overview?: Overview; editable: boolean; onChange: (b: Board) => void; onBeginEdit: () => void;
+}) {
   const k = overview?.kpis;
   const cats = overview?.categories ?? { income: board.income, expenditure: board.expenditure };
   const totals = overview?.totals;
-  const set = (path: string, v: unknown) => onChange(setPath(board, path, v));
+
+  const [openCard, setOpenCard] = useState<CardKey | null>(null);
+  // Taken on the first change, not on opening, because the draft may still be loading at that point.
+  const [snapshot, setSnapshot] = useState<Record<string, unknown> | null>(null);
+  const isOpen = (key: CardKey) => editable && openCard === key;
+
+  const set = (path: string, v: unknown) => {
+    if (openCard && !snapshot) {
+      setSnapshot(Object.fromEntries(CARD_PATHS[openCard].map((p) => [p, clone(getPath(board, p))])));
+    }
+    onChange(setPath(board, path, v));
+  };
+  const tools = (key: CardKey, label: string) => ({
+    open: isOpen(key),
+    label,
+    onEdit: () => { if (!editable) onBeginEdit(); setOpenCard(key); setSnapshot(null); },
+    onKeep: () => { setOpenCard(null); setSnapshot(null); },
+    onCancel: () => {
+      if (snapshot) {
+        let b = board;
+        for (const [p, v] of Object.entries(snapshot)) b = setPath(b, p, clone(v));
+        onChange(b);
+      }
+      setOpenCard(null); setSnapshot(null);
+    },
+  });
 
   return (
     <>
@@ -72,31 +110,31 @@ export function OverviewTab({ unit, board, overview, editing, onChange }: { unit
       )}
 
       <div className="grid2">
-        <Obligations title="Loan repayments" kind="loans" items={board.loans} editing={editing} onChange={(items) => set("loans", items)} />
-        <Obligations title="Lease payments" kind="leases" items={board.leases} editing={editing} onChange={(items) => set("leases", items)} />
+        <Obligations title="Loan repayments" kind="loans" items={board.loans} tools={tools("loans", "loan repayments")} onChange={(items) => set("loans", items)} />
+        <Obligations title="Lease payments" kind="leases" items={board.leases} tools={tools("leases", "lease payments")} onChange={(items) => set("leases", items)} />
       </div>
 
-      <Card title="Looking back — how this year compares">
+      <Card title="Looking back — how this year compares" tools={<EditTools {...tools("lookingBack", "this year's comparison")} />}>
         <div className="looking">
           <div>
             <div className="mini-label">Family debtors</div>
-            <Debtors current={board.priorYear.debtorsCurrent} prior={board.priorYear.debtorsPrior} editing={editing} onChange={(c, p) => onChange(setPath(setPath(board, "priorYear.debtorsCurrent", c), "priorYear.debtorsPrior", p))} />
+            <Debtors current={board.priorYear.debtorsCurrent} prior={board.priorYear.debtorsPrior} editing={isOpen("lookingBack")} onChange={(c, p) => set("priorYear", { ...board.priorYear, debtorsCurrent: c, debtorsPrior: p })} />
           </div>
           <div>
             <div className="mini-label">Strategic note vs last year</div>
-            {editing ? <TextArea value={board.priorYear.note} onChange={(v) => set("priorYear.note", v)} placeholder="e.g. Enrolment growth vs last year, debtor trends, one-off items…" />
-              : <p className="comment-text">{board.priorYear.note || <span className="muted">No note yet — add one in edit mode.</span>}</p>}
+            {isOpen("lookingBack") ? <TextArea value={board.priorYear.note} onChange={(v) => set("priorYear.note", v)} placeholder="e.g. Enrolment growth vs last year, debtor trends, one-off items…" />
+              : <p className="comment-text">{board.priorYear.note || <span className="muted">No note yet — click the pencil to add one.</span>}</p>}
           </div>
         </div>
       </Card>
 
       <div className="grid2">
-        <Card accent="blue" title="Current impacts">
-          {editing ? <TextArea value={board.comments.current} onChange={(v) => set("comments.current", v)} placeholder="What's affecting the numbers right now…" />
+        <Card accent="blue" title="Current impacts" tools={<EditTools {...tools("current", "current impacts")} />}>
+          {isOpen("current") ? <TextArea value={board.comments.current} onChange={(v) => set("comments.current", v)} placeholder="What's affecting the numbers right now…" />
             : <p className="comment-text">{board.comments.current || <span className="muted">Nothing noted for this period.</span>}</p>}
         </Card>
-        <Card accent="gold" title="Planned & upcoming impacts">
-          {editing ? <TextArea value={board.comments.upcoming} onChange={(v) => set("comments.upcoming", v)} placeholder="What's coming — capital works, new hires, fee changes, grant timing…" />
+        <Card accent="gold" title="Planned & upcoming impacts" tools={<EditTools {...tools("upcoming", "planned impacts")} />}>
+          {isOpen("upcoming") ? <TextArea value={board.comments.upcoming} onChange={(v) => set("comments.upcoming", v)} placeholder="What's coming — capital works, new hires, fee changes, grant timing…" />
             : <p className="comment-text">{board.comments.upcoming || <span className="muted">Nothing planned has been noted yet.</span>}</p>}
         </Card>
       </div>
@@ -125,10 +163,16 @@ function TotalRow({ label, a, varAmt }: { label: string; a: Board["income"][numb
   return <tr className="total"><td>{label}</td><td>{fmt(a.budget)}</td><td>{fmt(a.actual)}</td><td className={`c-${varAmt >= 0 ? "green" : "red"}`}>{fmt(varAmt)}</td><td>{fmt(a.annualBudget)}</td><td>{fmt(a.eoyEstimate)}</td></tr>;
 }
 
-function Obligations({ title, kind, items, editing, onChange }: { title: string; kind: "loans" | "leases"; items: Obligation[]; editing: boolean; onChange: (items: Obligation[]) => void }) {
+function Obligations({ title, kind, items, tools, onChange }: {
+  title: string; kind: "loans" | "leases"; items: Obligation[]; tools: Parameters<typeof EditTools>[0]; onChange: (items: Obligation[]) => void;
+}) {
+  const editing = tools.open;
   const upd = (i: number, patch: Partial<Obligation>) => onChange(items.map((o, j) => (j === i ? { ...o, ...patch } : o)));
   return (
-    <Card title={title} tools={editing && <Button size="small" variant="gold" onClick={() => onChange([...items, { name: "", payment: 0, frequency: "Monthly", ends: "", notes: "" }])}>+ Add</Button>}>
+    <Card title={title} tools={<>
+      {editing && <Button size="small" variant="gold" onClick={() => onChange([...items, { name: "", payment: 0, frequency: "Monthly", ends: "", notes: "" }])}>+ Add</Button>}
+      <EditTools {...tools} />
+    </>}>
       {!items.length && <Empty>No current {kind} recorded.{editing && " Use + Add to record one."}</Empty>}
       {items.map((o, i) => editing ? (
         <div className="item-card" key={i}>
@@ -153,7 +197,7 @@ function Obligations({ title, kind, items, editing, onChange }: { title: string;
 
 function Debtors({ current, prior, editing, onChange }: { current: number; prior: number; editing: boolean; onChange: (c: number, p: number) => void }) {
   const max = Math.max(current, prior, 1);
-  if (!current && !prior && !editing) return <Empty>Not yet entered — use Edit board to add this period's and last year's family debtors.</Empty>;
+  if (!current && !prior && !editing) return <Empty>Not yet entered — click the pencil to add this period's and last year's family debtors.</Empty>;
   return (
     <>
       <div className="bar-row simple"><div className="bar-label">This year</div><div className="bar-track"><div className="bar bar-actual" style={{ width: `${Math.max(1, (current / max) * 100)}%` }} /></div><div className="bar-val"><span>{fmt$(current)}</span></div></div>

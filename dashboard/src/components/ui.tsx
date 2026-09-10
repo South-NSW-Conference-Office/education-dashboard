@@ -69,17 +69,30 @@ export function TextArea({ value, onChange, placeholder, rows }: { value: string
   return <textarea value={value ?? ""} placeholder={placeholder} rows={rows} onChange={(e) => onChange(e.target.value)} />;
 }
 
+/** A card's way in and out of editing: a pencil that shows on hover or focus, then keep / cancel. */
+export function EditTools({ open, label, onEdit, onKeep, onCancel }: {
+  open: boolean; label: string; onEdit: () => void; onKeep: () => void; onCancel: () => void;
+}) {
+  if (!open) return <button type="button" className="rowbtn pencil card-pencil" title={`Edit ${label}`} aria-label={`Edit ${label}`} onClick={onEdit}>✎</button>;
+  return (
+    <>
+      <button type="button" className="rowbtn ok" title="Keep these changes" aria-label={`Keep changes to ${label}`} onClick={onKeep}>✓</button>
+      <button type="button" className="rowbtn no" title="Cancel" aria-label={`Cancel editing ${label}`} onClick={onCancel}>✕</button>
+    </>
+  );
+}
+
 /** Sticky bar that appears once a draft session has unsaved line edits. Carries the save actions
  *  that used to live in the page header, so nothing reaches the server until it is used. */
-export function SaveBar({ count, saving, onSaveDraft, onPublish, onDiscard }: {
-  count: number; saving?: boolean; onSaveDraft: () => void; onPublish: () => void; onDiscard: () => void;
+export function SaveBar({ label, discardLabel = "Discard", saving, onSaveDraft, onPublish, onDiscard }: {
+  label: string; discardLabel?: string; saving?: boolean; onSaveDraft: () => void; onPublish: () => void; onDiscard: () => void;
 }) {
   return (
-    <div className="savebar" role="region" aria-label="Unsaved line item changes">
+    <div className="savebar" role="region" aria-label="Unsaved changes">
       <div className="savebar-in">
-        <p className="savebar-count"><b>{count} line{count === 1 ? "" : "s"} edited</b><span>The approved figures stay as they are until you publish.</span></p>
+        <p className="savebar-count"><b>{label}</b><span>The approved figures stay as they are until you publish.</span></p>
         <div className="savebar-acts">
-          <Button onClick={onDiscard} disabled={saving}>Discard</Button>
+          <Button onClick={onDiscard} disabled={saving}>{discardLabel}</Button>
           <Button onClick={onSaveDraft} disabled={saving}>Save draft</Button>
           <Button variant="primary" onClick={onPublish} disabled={saving}>Save &amp; publish</Button>
         </div>
