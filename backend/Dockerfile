@@ -33,6 +33,12 @@ USER node
 
 COPY --chown=node:node --from=builder /app/.next/standalone ./
 COPY --chown=node:node --from=builder /app/.next/static ./.next/static
+# pdfjs-dist loads its worker (legacy/build/pdf.worker.mjs) via a dynamic
+# import at runtime, which Next's standalone file tracer cannot see — the
+# traced output ships pdf.mjs alone and every PDF import then fails with
+# "Setting up fake worker failed: Cannot find module ... pdf.worker.mjs".
+# Copy the whole package over the traced remnant so the worker is present.
+COPY --chown=node:node --from=builder /app/node_modules/pdfjs-dist ./node_modules/pdfjs-dist
 
 EXPOSE 4200
 
