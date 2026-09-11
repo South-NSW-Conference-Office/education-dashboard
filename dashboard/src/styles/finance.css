@@ -43,7 +43,7 @@
 .finance-workspace ul.health .amt{font-size:12px;flex-shrink:0}
 .finance-workspace .health .catcell{flex-wrap:wrap;gap:6px;line-height:1.75}
 .finance-workspace .health .c-green{color:var(--muted)}
-.finance-workspace .health .dot-green{background:var(--line-strong)}
+/* Client call: the "Going well" dots read green (app.css's .dot-green), not neutral. */
 .finance-workspace .tag{background:var(--surface-2);color:var(--muted);text-transform:none;letter-spacing:0;padding:3px 7px}
 /* Column alignment and grouped totals carry table structure; no row dividers. */
 .finance-workspace .ftable{font-size:12px;min-width:680px;font-variant-numeric:tabular-nums}
