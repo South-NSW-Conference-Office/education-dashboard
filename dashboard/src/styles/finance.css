@@ -27,6 +27,11 @@
 .finance-workspace .kpi-value,.finance-workspace .kpi-feature .kpi-value{color:var(--ink);font-size:clamp(24px,7.7cqi,34px);font-weight:400;letter-spacing:-.04em;margin-top:18px;overflow-wrap:anywhere}
 .finance-workspace .kpi-sub,.finance-workspace .kpi-feature .kpi-sub,.finance-workspace .kpi-feature .kpi-of{color:var(--muted);opacity:1;font-size:11px;margin-top:10px}
 .finance-workspace .kpi-delta{margin-top:16px}
+/* Client call: the KPI sub-line is a binary verdict — green when ahead of /
+   under budget, red when behind / over. Amber's "close to budget" nuance
+   collapses into red here (and only here — bar-variance chips keep it). */
+.finance-workspace .kpi-delta .chip-green{color:var(--green-text)}
+.finance-workspace .kpi-delta .chip-amber{color:var(--red-text)}
 .finance-workspace .trend-light{background:transparent;color:var(--muted);padding:0;font-size:11px}
 .finance-workspace .chip{padding:0;background:transparent;font-size:11px;font-weight:400;white-space:normal}
 .finance-workspace .chip-green{color:var(--muted)}

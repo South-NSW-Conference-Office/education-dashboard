@@ -47,7 +47,7 @@ export function SummaryPage() {
       {selection.kind === "month" && d.context.boards < (units.data?.length ?? 0) && <div className="banner banner-blue">Only {d.context.boards} of {units.data?.length} schools have an approved board for {label}; the combined figures cover those.</div>}
 
       <div className="grid4">
-        <Kpi feature label="Combined surplus (YTD)" value={compact$(t.surplus.actual)} sub={`Budget ${compact$(t.surplus.budget)}`} delta={`${fmt$(Math.abs(t.surVar))} ${t.surVar >= 0 ? "ahead" : "behind"}`} />
+        <Kpi feature label="Combined surplus (YTD)" value={compact$(t.surplus.actual)} sub={`Budget ${compact$(t.surplus.budget)}`} colour={t.surVar >= 0 ? "green" : "red"} delta={`${fmt$(Math.abs(t.surVar))} ${t.surVar >= 0 ? "ahead" : "behind"}`} />
         <Kpi label="Combined income (YTD)" value={compact$(t.income.actual)} sub={`Budget ${compact$(t.income.budget)}`} colour={varColour(t.incVar, t.income.budget)} delta={`${fmt$(Math.abs(t.incVar))} ${t.incVar >= 0 ? "ahead of budget" : "behind budget"}`} />
         <Kpi label="Combined spending (YTD)" value={compact$(t.expenditure.actual)} sub={`Budget ${compact$(t.expenditure.budget)}`} colour={varColour(-t.expVar, t.expenditure.budget)} delta={`${fmt$(Math.abs(t.expVar))} ${t.expVar <= 0 ? "under budget" : "over budget"}`} />
         <Kpi label="Schools needing attention" value={<>{d.schools.filter((x) => x.finance !== "green").length} <span className="kpi-of">of {d.schools.length}</span></>} sub={d.schools.filter((x) => x.finance !== "green").map((x) => x.short).join(", ") || "All schools at or ahead of budget"} />

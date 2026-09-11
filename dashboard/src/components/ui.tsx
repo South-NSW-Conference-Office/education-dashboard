@@ -155,7 +155,7 @@ export function Kpi({ label, value, sub, colour, delta, feature }: { label: stri
       <div className="kpi-label">{colour && !feature && <Dot colour={colour} />}{label}</div>
       <div className="kpi-value">{value}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
-      {delta && <div className="kpi-delta">{colour && !feature ? <Chip colour={colour}>{delta}</Chip> : <span className="trend-light">{delta}</span>}</div>}
+      {delta && <div className="kpi-delta">{colour ? <Chip colour={colour}>{delta}</Chip> : <span className="trend-light">{delta}</span>}</div>}
     </div>
   );
 }

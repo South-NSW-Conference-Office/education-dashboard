@@ -53,7 +53,7 @@ export function OverviewTab({ unit, board, overview, editable, onChange, onBegin
     <>
       {k && (
         <div className="grid4">
-          <Kpi feature label="Surplus / (deficit) YTD" value={fmt$(k.surplus.actual)} sub={`Budget ${fmt$(k.surplus.budget)}`} delta={`${fmt$(Math.abs(k.surplus.variance))} ${k.surplus.variance >= 0 ? "ahead" : "behind"}`} />
+          <Kpi feature label="Surplus / (deficit) YTD" value={fmt$(k.surplus.actual)} sub={`Budget ${fmt$(k.surplus.budget)}`} colour={k.surplus.variance >= 0 ? "green" : "red"} delta={`${fmt$(Math.abs(k.surplus.variance))} ${k.surplus.variance >= 0 ? "ahead" : "behind"}`} />
           <Kpi label="Income (YTD)" value={fmt$(k.income.actual)} sub={`Budget ${fmt$(k.income.budget)}`} colour={k.income.colour} delta={`${fmt$(Math.abs(k.income.variance))} ${k.income.variance >= 0 ? "ahead of budget" : "behind budget"}`} />
           <Kpi label="Spending (YTD)" value={fmt$(k.spending.actual)} sub={`Budget ${fmt$(k.spending.budget)}`} colour={k.spending.colour} delta={`${fmt$(Math.abs(k.spending.variance))} ${k.spending.variance >= 0 ? "under budget" : "over budget"}`} />
           <Kpi label="Operating margin" value={pct(k.margin.actual)} sub={`EBIDA basis · budget ${pct(k.margin.budget)}`} colour={k.margin.colour} delta={`${k.margin.actual - k.margin.budget >= 0 ? "+" : "−"}${Math.abs(k.margin.actual - k.margin.budget).toFixed(1)} pts vs budget`} />
