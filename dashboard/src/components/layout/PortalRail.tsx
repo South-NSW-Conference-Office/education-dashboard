@@ -167,9 +167,9 @@ export function PortalRail() {
               ? BlocksIcon
               : SCHOOL_ICONS[schools.indexOf(u) % SCHOOL_ICONS.length]!;
             return (
+              // Health status lives only in the tooltip text — no corner dot on the icon.
               <RailNavLink key={u.code} to={`/finance/${u.code}`} label={st ? `${u.name} · ${STATUS_LABEL[st]}` : u.name}>
                 <Icon />
-                {st && <span className={`railStatus dot-${st}`} />}
               </RailNavLink>
             );
           });

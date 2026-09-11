@@ -486,8 +486,6 @@ button.rating{cursor:pointer}
   .railBtn.active{color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--gold)}
   a.railBtn.active{color:var(--accent)}
   .railSep{width:20px;height:1px;flex:none;background:var(--line-strong);margin:4px 0}
-  .railStatus{position:absolute;top:2px;right:2px;width:6px;height:6px;border-radius:50%}
-  .railStatus.dot-green{background:var(--green)} .railStatus.dot-amber{background:var(--amber)} .railStatus.dot-red{background:var(--red)}
 }
 @media (hover:none){ .railTip{display:none} }
 .presenting .portal-rail{display:none!important}
