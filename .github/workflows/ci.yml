@@ -1,0 +1,50 @@
+# education-dashboard — CI only. This monorepo is the source of truth; the
+# actual deploy pipelines live in the standalone deploy repos, which
+# scripts/ship-to-deploy-repos.sh fast-forwards from here:
+#   backend/   -> South-NSW-Conference-Office/education-backend  (morpheus)
+#   dashboard/ -> South-NSW-Conference-Office/education-frontend (snswserver)
+# Same monorepo -> deploy-repo split as CFODashboard and the other apps in
+# this project group.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests & typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci --legacy-peer-deps
+      - name: Typecheck
+        working-directory: backend
+        run: npm run typecheck
+      - name: Tests
+        working-directory: backend
+        run: npm test
+
+  frontend:
+    name: Frontend typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Typecheck & build
+        working-directory: dashboard
+        run: npm run build

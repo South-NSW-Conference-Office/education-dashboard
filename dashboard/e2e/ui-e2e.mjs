@@ -115,13 +115,12 @@ await test("published figure is what was typed in the editor", async () => {
 
 await test("period picker: pinning June 2026 shows the June board", async () => {
   await page.goto(BASE + "/finance/bcc", { waitUntil: "networkidle" });
-  const pill = page.locator(".pill", { hasText: /as at|latest|period/i }).first();
-  await pill.click();
-  const june = page.getByText(/June 2026/).first();
-  await june.waitFor({ timeout: 10000 });
-  await june.click();
-  await page.waitForTimeout(800);
-  await page.getByText(/June 2026/).first().waitFor({ timeout: 10000 });
+  await page.locator(".pill-btn").first().click();
+  const search = page.locator(".period-search");
+  await search.waitFor({ timeout: 10000 });
+  await search.fill("june 2026");
+  await page.locator(".period-opt", { hasText: "June 2026" }).first().click();
+  await page.locator(".pill-btn", { hasText: "June 2026" }).waitFor({ timeout: 10000 });
   await shot(page, "08-june-lookback");
 });
 

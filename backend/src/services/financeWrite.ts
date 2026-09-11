@@ -6,7 +6,7 @@ import { CommentaryNoteModel, FinancialFactModel, FinancialObligationModel, Rece
 import { COLUMN_KEYS, COLUMNS, type BoardDocument, type ObligationItem, type RollupResult, type Section } from "@/domain/types";
 import { ReportedTotalModel as RT } from "@/models";
 import { toMinor } from "@/lib/money";
-import { badRequest } from "@/lib/http";
+import { badRequest, conflict } from "@/lib/http";
 import { accountCodeFor, extractBoard, groupCodeFor, type Extracted } from "./boardDocument";
 import { ensurePeriodByLabel, ensureStructure, getUnit, type Id, type PeriodDoc, type UnitDoc } from "./structure";
 import { approve, assertEditable, audit, ensureDraft, type VersionDoc } from "./workflow";
@@ -105,10 +105,22 @@ export async function saveBoardDocument(unitCode: string, doc: BoardDocument, op
   const mode = opts.reportedTotals ?? "align-changed";
   const hadTotals = mode === "align-changed" && (await RT.countDocuments({ reportVersionId: version._id })) > 0;
   const before = hadTotals ? rollup((await loadFinanceInput(unit, period, version)).input) : null;
-  await writeFacts(unit, period, version, ex, accountIds);
-  if (before) await alignChangedTotals(version, before, rollup((await loadFinanceInput(unit, period, version)).input));
-  else await writeReportedTotals(version, ex); // first figures for this period, or an import: the payload's page-1 totals stand
-  await writeExtras(unit, version, doc);
+  // Two saves landing on the same draft at once interleave their delete-and-insert passes
+  // and collide on the fact indexes. Re-run the whole replace (last writer wins); a save
+  // that keeps colliding answers 409 rather than a bare duplicate-key 500.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await writeFacts(unit, period, version, ex, accountIds);
+      if (before) await alignChangedTotals(version, before, rollup((await loadFinanceInput(unit, period, version)).input));
+      else await writeReportedTotals(version, ex); // first figures for this period, or an import: the payload's page-1 totals stand
+      await writeExtras(unit, version, doc);
+      break;
+    } catch (err) {
+      const code = (err as { code?: number; cause?: { code?: number } }).code ?? (err as { cause?: { code?: number } }).cause?.code;
+      if (code !== 11000) throw err;
+      if (attempt >= 3) throw conflict("Another save landed on this draft at the same moment; try again");
+    }
+  }
   await audit("report_version", version._id, "SAVE_BOARD", { actor: opts.actor, after: { lines: ex.lines.length, warnings } });
   let final = version;
   if (opts.publish) final = await approveVersion(unit, period, version, opts.actor);

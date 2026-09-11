@@ -73,18 +73,43 @@ export async function ensureDraft(unit: UnitDoc, period: PeriodDoc, opts: { impo
   const existing = await openDraft(unit, period);
   if (existing) return existing;
   const snapshotId = await snapshotFor(unit, period);
-  const last = await ReportVersionModel.findOne({ reportingSnapshotId: snapshotId }).sort({ versionNo: -1 }).lean();
+  // The (snapshotId, versionNo) unique index is what serialises concurrent creates below;
+  // wait for it — a brand-new database builds indexes lazily, letting duplicates through.
+  await ReportVersionModel.init();
   const approved = opts.copyFrom === "none" ? null : await latestApproved(unit, period);
-  const created = await ReportVersionModel.create({
-    reportingSnapshotId: snapshotId, operatingUnitId: unit._id, fiscalPeriodId: period._id,
-    versionNo: (last?.versionNo ?? 0) + 1, status: "DRAFT",
-    supersedesVersionId: approved?._id ?? null, importBatchId: opts.importBatchId ?? null,
-    isPlaceholder: opts.isPlaceholder ?? approved?.isPlaceholder ?? false,
-  });
-  const v = created.toObject() as unknown as VersionDoc;
-  if (approved) await copyVersionContents(approved._id, v._id);
-  await audit("report_version", v._id, "CREATE_DRAFT", { after: { versionNo: v.versionNo, from: approved?._id ?? null } });
-  return v;
+  for (let attempt = 0; ; attempt++) {
+    const last = await ReportVersionModel.findOne({ reportingSnapshotId: snapshotId }).sort({ versionNo: -1 }).lean();
+    try {
+      const created = await ReportVersionModel.create({
+        reportingSnapshotId: snapshotId, operatingUnitId: unit._id, fiscalPeriodId: period._id,
+        versionNo: (last?.versionNo ?? 0) + 1, status: "DRAFT",
+        supersedesVersionId: approved?._id ?? null, importBatchId: opts.importBatchId ?? null,
+        isPlaceholder: opts.isPlaceholder ?? approved?.isPlaceholder ?? false,
+      });
+      const v = created.toObject() as unknown as VersionDoc;
+      // Concurrent requests can slip past the openDraft check and mint two drafts with
+      // different version numbers. Elect the lowest as the draft; every racer deletes its
+      // own loser, so exactly one survives.
+      const open = (await ReportVersionModel.find({ reportingSnapshotId: snapshotId, status: { $in: ["DRAFT", "IN_REVIEW"] } }).lean()) as unknown as VersionDoc[];
+      if (open.length > 1) {
+        const winner = open.sort((a, b) => a.versionNo - b.versionNo || String(a._id).localeCompare(String(b._id)))[0];
+        if (String(winner._id) !== String(v._id)) {
+          await ReportVersionModel.deleteOne({ _id: v._id, status: "DRAFT" });
+          return winner;
+        }
+      }
+      if (approved) await copyVersionContents(approved._id, v._id);
+      await audit("report_version", v._id, "CREATE_DRAFT", { after: { versionNo: v.versionNo, from: approved?._id ?? null } });
+      return v;
+    } catch (err) {
+      const code = (err as { code?: number; cause?: { code?: number } }).code ?? (err as { cause?: { code?: number } }).cause?.code;
+      if (code !== 11000 || attempt >= 4) throw err;
+      // A concurrent request minted the same versionNo first. If its version is an open
+      // draft, that IS the draft to use; otherwise recompute the number and try again.
+      const winner = await openDraft(unit, period);
+      if (winner) return winner;
+    }
+  }
 }
 
 async function copyVersionContents(from: Id, to: Id): Promise<void> {
