@@ -63,13 +63,18 @@ mirror() {
   done
   cp -a "$src_extract/$src_dir/." "$tmp/"
 
-  if [[ -z "$(git -C "$tmp" status --porcelain)" ]]; then
+  # Emptiness is judged on the ADDED index, not the raw worktree: on a Windows
+  # checkout, autocrlf materialises CRLF while the archive extract is LF, so
+  # `status --porcelain` reports phantom eol-only diffs that normalise away on
+  # `git add` — the commit then fails "nothing to commit" and set -e aborts the
+  # whole ship before the next repo mirrors.
+  git -C "$tmp" add -A
+  if git -C "$tmp" diff --cached --quiet; then
     echo "    no changes; skipping"
     rm -rf "$tmp"
     return 0
   fi
 
-  git -C "$tmp" add -A
   git -C "$tmp" -c user.name="bemorchestrator" -c user.email="snswcomms@adventist.org.au" \
     commit --quiet -m "Ship ${MONO_SHA}: ${MONO_SUBJECT}"
   git -C "$tmp" show --stat --oneline HEAD | sed 's/^/    /'
