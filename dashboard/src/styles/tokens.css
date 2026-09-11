@@ -1,53 +1,67 @@
-/* Design tokens — taken from brand-kit.html (SNSW Dashboard Brand & UI Kit v1.1).
-   Light palette on :root; dark redefined for system-dark (unless light is forced) and for the toggle. */
+/* Design tokens — the CFO Command Centre system (CFODashboard/frontend), shared
+   across the SNSW dashboards. Warm paper ground, navy ink, restrained bronze/gold.
+   Light palette on :root; dark is a derived counterpart of the same hues
+   (redefined for system-dark unless light is forced, and for the toggle). */
 :root {
-  --accent: #0D5CAB; --accent-dark: #0A4A8C; --accent-soft: #EAF2FB; --accent-softer: #F3F8FE;
-  --gold: #E0A536; --gold-text: #8A5E0E; --gold-soft: #FDF4E3;
-  --ink: #1D1D22; --muted: #5C636C; --faint: #9AA0A8;
-  --surface: #FFFFFF; --surface-2: #F8FAFC; --bg: #EEF1F5;
-  --line: #E3E7EC; --line-strong: #CFD5DD;
-  --green: #2E9D5C; --green-soft: #E7F4EC; --green-text: #1F6B41;
-  --amber: #E0A12E; --amber-soft: #FBF1DE; --amber-text: #8A5E0E;
-  --red: #CF4646; --red-soft: #FAE7E7; --red-text: #9E2F2F;
-  --side-1: #0F1115; --side-2: #181B21; --side-text: #C9CDD4; --side-text-dim: #8D929B;
-  --radius-sm: 6px; --radius: 12px; --radius-lg: 16px; --radius-pill: 999px;
-  --shadow: 0 1px 2px rgba(20, 24, 33, .05), 0 8px 24px rgba(20, 24, 33, .07);
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --accent: #8A6A2A; --accent-dark: #6B5320; --accent-soft: #F7F1E6; --accent-softer: #FAF6EC;
+  --gold: #C9A24B; --gold-text: #8A6A2A; --gold-soft: #F7F1E6;
+  --ink: #1B2430; --muted: #5B626C; --faint: #9AA0A8;
+  --surface: #FFFFFF; --surface-2: #F5F4EF; --bg: #FBFBF9;
+  --line: #E7E5DF; --line-strong: #D9D6CE;
+  --green: #3E7A55; --green-soft: #EEF3EF; --green-text: #3E7A55;
+  --amber: #C9A24B; --amber-soft: #F7F1E6; --amber-text: #8A6A2A;
+  --red: #A8443B; --red-soft: #F7ECEA; --red-text: #A8443B;
+  --neutral: #41566C; --neutral-soft: #F1EFEA;
+  --hover-wash: #EFEDE7;
+  --side-bg: #FFFFFF; --side-text: #4A5260; --side-text-dim: #A8A196; --side-active-text: #FBFBF9;
+  --primary: #1B2430; --primary-text: #FBFBF9;
+  --eyebrow: #A0885E;
+  --radius-sm: 8px; --radius: 12px; --radius-lg: 12px; --radius-pill: 999px;
+  --shadow: 0 12px 32px rgba(27, 36, 48, .12);
+  --shadow-lg: 0 22px 48px rgba(27, 36, 48, .16);
+  --font-ui: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --glass: rgba(255, 255, 255, .58); --glass-strong: rgba(255, 255, 255, .8); --glass-border: rgba(255, 255, 255, .65);
-  --glass-shadow: 0 8px 32px rgba(31, 41, 64, .14), inset 0 1px 0 rgba(255, 255, 255, .5);
-  --blur: 18px;
-  --blob-1: rgba(13, 92, 171, .16); --blob-2: rgba(224, 165, 54, .14);
+  --header-glass: rgba(251, 251, 249, .92);
   --sidebar-w: clamp(212px, 17vw, 264px);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --accent: #5C9BDD; --accent-dark: #3E7FC4; --accent-soft: rgba(92, 155, 221, .16); --accent-softer: rgba(92, 155, 221, .08);
-    --gold: #E9BD6B; --gold-text: #E9BD6B; --gold-soft: rgba(224, 165, 54, .16);
-    --ink: #EDEFF3; --muted: #A6ACB6; --faint: #6C7380;
-    --surface: #1B1F27; --surface-2: #20242E; --bg: #0F1216;
-    --line: #2B2F39; --line-strong: #3A4150;
-    --green: #4CBE82; --green-soft: rgba(46, 157, 92, .16); --green-text: #7CD6A3;
-    --amber: #E0A12E; --amber-soft: rgba(224, 161, 46, .16); --amber-text: #E9BD6B;
-    --red: #E17070; --red-soft: rgba(207, 70, 70, .16); --red-text: #F0A0A0;
-    --glass: rgba(27, 31, 39, .5); --glass-strong: rgba(27, 31, 39, .68); --glass-border: rgba(255, 255, 255, .09);
-    --glass-shadow: 0 10px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
-    --blob-1: rgba(92, 155, 221, .22); --blob-2: rgba(233, 189, 107, .16);
+    --accent: #D3B36A; --accent-dark: #E0C588; --accent-soft: rgba(201, 162, 75, .16); --accent-softer: rgba(201, 162, 75, .08);
+    --gold: #D3B36A; --gold-text: #D3B36A; --gold-soft: rgba(201, 162, 75, .16);
+    --ink: #ECEAE3; --muted: #A9ADB5; --faint: #767C86;
+    --surface: #1C2027; --surface-2: #232830; --bg: #14171C;
+    --line: #2E333C; --line-strong: #3D434E;
+    --green: #6FAF8B; --green-soft: rgba(111, 175, 139, .15); --green-text: #8CC5A4;
+    --amber: #D3B36A; --amber-soft: rgba(201, 162, 75, .16); --amber-text: #D3B36A;
+    --red: #CF837A; --red-soft: rgba(168, 68, 59, .22); --red-text: #E09C94;
+    --neutral: #9FB0C2; --neutral-soft: rgba(159, 176, 194, .14);
+    --hover-wash: rgba(236, 234, 227, .07);
+    --side-bg: #191D23; --side-text: #B4B9C0; --side-text-dim: #767C86; --side-active-text: #14171C;
+    --primary: #ECEAE3; --primary-text: #1B2430;
+    --eyebrow: #C4A876;
+    --shadow: 0 12px 32px rgba(0, 0, 0, .4);
+    --shadow-lg: 0 22px 48px rgba(0, 0, 0, .5);
+    --header-glass: rgba(20, 23, 28, .92);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --accent: #5C9BDD; --accent-dark: #3E7FC4; --accent-soft: rgba(92, 155, 221, .16); --accent-softer: rgba(92, 155, 221, .08);
-  --gold: #E9BD6B; --gold-text: #E9BD6B; --gold-soft: rgba(224, 165, 54, .16);
-  --ink: #EDEFF3; --muted: #A6ACB6; --faint: #6C7380;
-  --surface: #1B1F27; --surface-2: #20242E; --bg: #0F1216;
-  --line: #2B2F39; --line-strong: #3A4150;
-  --green: #4CBE82; --green-soft: rgba(46, 157, 92, .16); --green-text: #7CD6A3;
-  --amber: #E0A12E; --amber-soft: rgba(224, 161, 46, .16); --amber-text: #E9BD6B;
-  --red: #E17070; --red-soft: rgba(207, 70, 70, .16); --red-text: #F0A0A0;
-  --glass: rgba(27, 31, 39, .5); --glass-strong: rgba(27, 31, 39, .68); --glass-border: rgba(255, 255, 255, .09);
-  --glass-shadow: 0 10px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
-  --blob-1: rgba(92, 155, 221, .22); --blob-2: rgba(233, 189, 107, .16);
+  --accent: #D3B36A; --accent-dark: #E0C588; --accent-soft: rgba(201, 162, 75, .16); --accent-softer: rgba(201, 162, 75, .08);
+  --gold: #D3B36A; --gold-text: #D3B36A; --gold-soft: rgba(201, 162, 75, .16);
+  --ink: #ECEAE3; --muted: #A9ADB5; --faint: #767C86;
+  --surface: #1C2027; --surface-2: #232830; --bg: #14171C;
+  --line: #2E333C; --line-strong: #3D434E;
+  --green: #6FAF8B; --green-soft: rgba(111, 175, 139, .15); --green-text: #8CC5A4;
+  --amber: #D3B36A; --amber-soft: rgba(201, 162, 75, .16); --amber-text: #D3B36A;
+  --red: #CF837A; --red-soft: rgba(168, 68, 59, .22); --red-text: #E09C94;
+  --neutral: #9FB0C2; --neutral-soft: rgba(159, 176, 194, .14);
+  --hover-wash: rgba(236, 234, 227, .07);
+  --side-bg: #191D23; --side-text: #B4B9C0; --side-text-dim: #767C86; --side-active-text: #14171C;
+  --primary: #ECEAE3; --primary-text: #1B2430;
+  --eyebrow: #C4A876;
+  --shadow: 0 12px 32px rgba(0, 0, 0, .4);
+  --shadow-lg: 0 22px 48px rgba(0, 0, 0, .5);
+  --header-glass: rgba(20, 23, 28, .92);
   color-scheme: dark;
 }

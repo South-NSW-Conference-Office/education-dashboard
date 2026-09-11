@@ -1,3 +1,3 @@
-import { handle } from "@/lib/http";
+import { guarded } from "@/lib/access";
 import { getSummary } from "@/controllers/finance";
-export const GET = handle(async (req: Request) => getSummary(req));
+export const GET = guarded("boards.read", async (req: Request) => getSummary(req));

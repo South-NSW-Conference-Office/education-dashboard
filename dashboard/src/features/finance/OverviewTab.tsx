@@ -78,11 +78,11 @@ export function OverviewTab({ unit, board, overview, editable, onChange, onBegin
       )}
 
       <div className="grid2 wide">
-        <Card title="Income — actual vs budget (YTD)"><PairedBars isIncome rows={cats.income} /></Card>
-        <Card title="Spending — actual vs budget (YTD)"><PairedBars isIncome={false} rows={cats.expenditure} /></Card>
+        <Card title="Income by category" tools={<span className="hint">Year to date</span>}><PairedBars isIncome rows={cats.income} /></Card>
+        <Card title="Spending by category" tools={<span className="hint">Year to date</span>}><PairedBars isIncome={false} rows={cats.expenditure} /></Card>
       </div>
 
-      <Card solid title="Summary — year to date & end of year outlook" tools={<span className="hint">▣ = calculated from the <Link to={`/finance/${unit}/details`}>Details tab</Link></span>} className="scroll-x">
+      <Card solid title="Financial statement" tools={<Link className="hint" to={`/finance/${unit}/details`}>View line items →</Link>} className="scroll-x">
         <table className="ftable">
           <thead><tr><th>Category</th><th>YTD budget</th><th>YTD actual</th><th>Variance</th><th>Annual budget</th><th>Est. end of year</th></tr></thead>
           <tbody>
@@ -114,7 +114,7 @@ export function OverviewTab({ unit, board, overview, editable, onChange, onBegin
         <Obligations title="Lease payments" kind="leases" items={board.leases} tools={tools("leases", "lease payments")} onChange={(items) => set("leases", items)} />
       </div>
 
-      <Card title="Looking back — how this year compares" tools={<EditTools {...tools("lookingBack", "this year's comparison")} />}>
+      <Card title="Year-on-year comparison" tools={<EditTools {...tools("lookingBack", "this year's comparison")} />}>
         <div className="looking">
           <div>
             <div className="mini-label">Family debtors</div>

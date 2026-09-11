@@ -9,10 +9,12 @@ import { usePeriod } from "@/hooks/usePeriod";
 import { compact$, fmt, fmt$, pct } from "@/lib/format";
 import { LATEST } from "@/lib/period";
 import type { Light } from "@/lib/types";
+import { BoardMenu, usePresentation } from "@/components/BoardMenu";
 
 const varColour = (v: number, base: number): Light => (v >= 0 ? "green" : v > -0.05 * Math.abs(base || 1) ? "amber" : "red");
 
 export function SummaryPage() {
+  const { presenting, setPresenting } = usePresentation();
   const s = useSummary();
   const units = useUnits();
   const nav = useNavigate();
@@ -20,12 +22,12 @@ export function SummaryPage() {
   if (s.isPending) return <Loading what="finance summary" />;
   if (s.error || !s.data) return <ErrorState error={s.error} retry={() => s.refetch()} />;
   const d = s.data, t = d.totals;
-  const colour = new Map((units.data ?? []).map((u) => [u.code, u.colour]));
   // Under Latest, All time or a range the boards may sit at different months: say which.
   const resolved = d.context.periods.join(" / ");
   const header = (
     <PageHeader eyebrow="Finance · All schools" title="Finance summary"
-      pills={<><PeriodPicker label="Boards as at" note={selection.kind !== "month" && resolved ? resolved : undefined} /><Pill label="Boards">{d.context.boards} of {units.data?.length ?? d.context.boards}</Pill></>} />
+      pills={<><PeriodPicker label="Boards as at" note={selection.kind !== "month" && resolved ? resolved : undefined} /><Pill label="Schools reporting">{d.context.boards} of {units.data?.length ?? d.context.boards}</Pill></>}
+      actions={presenting ? <Button onClick={() => setPresenting(false)}>Exit presentation</Button> : <BoardMenu items={[{ label: "Present", action: () => setPresenting(true) }, { label: "Print", action: () => window.print() }]} />} />
   );
   if (!d.context.boards) return (
     <>
@@ -53,29 +55,29 @@ export function SummaryPage() {
 
       <Card solid title="School by school" tools={<span className="hint">Click a school to open its board</span>} className="scroll-x">
         <table className="ftable stable">
-          <thead><tr><th>School</th><th>Income YTD</th><th>vs budget</th><th>Spending YTD</th><th>vs budget</th><th>Surplus / (deficit)</th><th>vs budget</th><th>Margin</th><th>Status</th></tr></thead>
+          <thead><tr><th>School</th><th>Income YTD</th><th>Spending YTD</th><th>Surplus / (deficit)</th><th>Margin</th><th>Status</th></tr></thead>
           <tbody>
             {d.schools.map((x) => {
               const iv = x.income.actual - x.income.budget, ev = x.spending.budget - x.spending.actual;
               return (
                 <tr key={x.unit} className="rowlink" onClick={() => nav(`/finance/${x.unit}`)}>
-                  <td><Link className="school-link" to={`/finance/${x.unit}`} onClick={(e) => e.stopPropagation()}><i className="swatch" style={{ background: colour.get(x.unit) ?? "var(--accent)" }} /><span><b>{x.name}</b><small>As at {x.asAt}{x.placeholder && <> · <Badge tone="amber">placeholder</Badge></>}</small></span></Link></td>
-                  <td>{fmt$(x.income.actual)}</td><td className={`c-${varColour(iv, x.income.budget)} strong`}>{fmt(iv)}</td>
-                  <td>{fmt$(x.spending.actual)}</td><td className={`c-${varColour(ev, x.spending.budget)} strong`}>{fmt(ev)}</td>
-                  <td>{fmt$(x.surplus.actual)}</td><td className={`c-${x.finance} strong`}>{fmt(x.surVar)}</td>
+                  <td><Link className="school-link" to={`/finance/${x.unit}`} onClick={(e) => e.stopPropagation()}><span><b>{x.name}</b><small>As at {x.asAt}{x.placeholder && <> · <Badge tone="amber">placeholder</Badge></>}</small></span></Link></td>
+                  <td><SummaryAmount amount={x.income.actual} variance={iv} /></td>
+                  <td><SummaryAmount amount={x.spending.actual} variance={ev} /></td>
+                  <td><SummaryAmount amount={x.surplus.actual} variance={x.surVar} /></td>
                   <td>{pct(x.marginPct)}</td>
                   <td><Chip colour={x.finance}>{x.finance === "green" ? "On track" : x.finance === "amber" ? "Watch" : "At risk"}</Chip></td>
                 </tr>
               );
             })}
-            <tr className="total"><td>All schools</td><td>{fmt$(t.income.actual)}</td><td className={`c-${t.incVar >= 0 ? "green" : "red"}`}>{fmt(t.incVar)}</td><td>{fmt$(t.expenditure.actual)}</td><td className={`c-${t.expVar <= 0 ? "green" : "red"}`}>{fmt(-t.expVar)}</td><td>{fmt$(t.surplus.actual)}</td><td className={`c-${t.surVar >= 0 ? "green" : "red"}`}>{fmt(t.surVar)}</td><td>{pct(t.marginPct)}</td><td /></tr>
+            <tr className="total"><td>All schools</td><td><SummaryAmount amount={t.income.actual} variance={t.incVar} /></td><td><SummaryAmount amount={t.expenditure.actual} variance={-t.expVar} /></td><td><SummaryAmount amount={t.surplus.actual} variance={t.surVar} /></td><td>{pct(t.marginPct)}</td><td /></tr>
           </tbody>
         </table>
         <p className="fine">Variance is favourable when positive. Combined margin is surplus over income; schools show their EBIDA margin.</p>
       </Card>
 
       <div className="grid2 wide">
-        <Card title="Surplus / (deficit) by school — actual vs budget (YTD)">
+        <Card title="Surplus by school" tools={<span className="hint">Year to date</span>}>
           <PairedBars isIncome rows={d.schools.map((x) => ({ label: x.name, budget: x.surplus.budget, actual: x.surplus.actual, href: `/finance/${x.unit}` }))} />
         </Card>
         <Card title={<span className="h-red">Needs attention across schools</span>}>
@@ -91,4 +93,8 @@ export function SummaryPage() {
       <TimelineCard />
     </>
   );
+}
+
+function SummaryAmount({ amount, variance }: { amount: number; variance: number }) {
+  return <span className="summary-amount">{fmt$(amount)}<small className={variance < 0 ? "c-red" : "muted"}>{variance > 0 ? "+" : ""}{fmt(variance)} vs budget</small></span>;
 }

@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePublishImport, useUploadReportPdf } from "@/hooks/queries";
 import { Badge, Banner, Button, Loading, Modal } from "@/components/ui";
+import { useAccess } from "@/hooks/useAuth";
 import { fmt, signed$ } from "@/lib/format";
 import type { Amounts, Board, Category, PdfImport, VersionInfo } from "@/lib/types";
 
@@ -30,6 +31,8 @@ export function ImportPdfDialog({ unit, file, current, versions, onClose, onDone
 }) {
   const uploadM = useUploadReportPdf(unit);
   const publishM = usePublishImport(unit);
+  const can = useAccess();
+  const canPublish = can("boards.publish");
   const [result, setResult] = useState<PdfImport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,10 +85,10 @@ export function ImportPdfDialog({ unit, file, current, versions, onClose, onDone
 
   return (
     <Modal title={title} onClose={onClose} wide footer={<>
-      <span className="hint">A draft leaves the approved figures untouched. Publishing makes these the figures every board shows.</span>
+      <span className="hint">{canPublish ? "A draft leaves the approved figures untouched. Publishing makes these the figures every board shows." : "Saves as a draft; someone with publish access approves it."}</span>
       <Button onClick={onClose} disabled={busy}>Cancel</Button>
-      <Button onClick={() => publish(false)} disabled={busy || blocked}>Save as draft</Button>
-      <Button variant="primary" onClick={() => publish(true)} disabled={busy || blocked}>{busy ? "Saving…" : "Publish"}</Button>
+      <Button variant={canPublish ? "ghost" : "primary"} onClick={() => publish(false)} disabled={busy || blocked}>{busy && !canPublish ? "Saving…" : "Save as draft"}</Button>
+      {canPublish && <Button variant="primary" onClick={() => publish(true)} disabled={busy || blocked}>{busy ? "Saving…" : "Publish"}</Button>}
     </>}>
       <div className="import-meta">
         <span className="pill"><label>Report for</label><b>{result.detected.unitName ?? "not named"}</b></span>

@@ -1,0 +1,52 @@
+# education-dashboard frontend — production docker-compose for the
+# **snswserver** host (linux/amd64, public IP 107.155.65.229).
+# =============================================================================
+#
+# The public surface: nginx serving the built Vite SPA, reverse-proxying /api
+# (the v1 API, Better Auth's OAuth callback, the SSO probe) to the backend on
+# morpheus over Tailscale — see dashboard/nginx.conf. No secrets live here.
+#
+# Joins the box's existing SHARED nginx-proxy + acme-companion stack the same
+# way every other app on this host does: no new ports 80/443, just
+# VIRTUAL_HOST / LETSENCRYPT_HOST env vars and membership in the external
+# `proxy-network`. DNS for education.adventist.bot must point at this host.
+#
+# CI (.github/workflows/deploy.yml, deploy-frontend job) scp's this file
+# here, then runs deploy/snswserver-release.sh. snswserver does ZERO building.
+# =============================================================================
+
+services:
+  education-dashboard-frontend:
+    image: ghcr.io/south-nsw-conference-office/education-dashboard-frontend:${IMAGE_TAG:-latest}
+    container_name: education-dashboard-frontend
+    restart: unless-stopped
+
+    environment:
+      - VIRTUAL_HOST=education.adventist.bot
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=education.adventist.bot
+      - LETSENCRYPT_EMAIL=bem@gyocc.org
+
+    expose:
+      - "80"
+
+    networks:
+      - proxy-network
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  # Owned by the box's shared proxy stack, not this project.
+  proxy-network:
+    external: true

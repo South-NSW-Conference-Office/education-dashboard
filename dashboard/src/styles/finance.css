@@ -1,0 +1,132 @@
+/* Finance boards share the weekly board's quiet reading hierarchy. */
+.finance-workspace{gap:30px;padding-top:30px}
+.finance-workspace .page-header{gap:22px}
+.finance-workspace .ph-row{gap:24px;align-items:center}
+.finance-workspace .ph-title h1{font-size:30px;font-weight:400;letter-spacing:-.035em;line-height:1.25}
+.finance-workspace .ph-pills{gap:24px;align-items:center}
+.finance-workspace .pill{border:0;background:transparent;padding:4px 0;min-width:0}
+.finance-workspace .pill label{font-size:10px;letter-spacing:0;text-transform:none;color:var(--muted)}
+.finance-workspace .pill b{font-size:12px;font-weight:400}
+.finance-workspace .pill-btn{border-radius:5px}
+.finance-workspace .pill-btn:hover{background:var(--hover-wash)}
+.finance-workspace .period.has-extra .pill-btn{padding-right:30px}
+.finance-workspace .pill-note{max-width:260px}
+.finance-workspace .ph-tabs{border:0;justify-content:flex-start}
+.finance-workspace .tabs{gap:6px;padding:4px;background:var(--surface-2);border-radius:9px}
+.finance-workspace .tab{border:0;margin:0;padding:9px 18px;font-size:12px;border-radius:6px}
+.finance-workspace .tab.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.finance-workspace .card{padding:24px;border-radius:14px}
+.finance-workspace .card-head{margin-bottom:24px;gap:12px}
+.finance-workspace .card h2{font-size:14px;font-weight:500;letter-spacing:-.015em}
+.finance-workspace .card h2 .h-red,.finance-workspace .card h2 .h-amber{color:var(--ink)}
+.finance-workspace .grid4,.finance-workspace .grid2{gap:20px}
+.finance-workspace .kpi{padding:24px 22px}
+.finance-workspace .kpi-feature{background:var(--surface);border-color:var(--line);color:var(--ink)}
+.finance-workspace .kpi-label,.finance-workspace .kpi-feature .kpi-label{font-size:11px;text-transform:none;letter-spacing:0;color:var(--muted);opacity:1}
+.finance-workspace .kpi-label .dot{display:none}
+.finance-workspace .kpi-value,.finance-workspace .kpi-feature .kpi-value{color:var(--ink);font-size:clamp(24px,7.7cqi,34px);font-weight:400;letter-spacing:-.04em;margin-top:18px;overflow-wrap:anywhere}
+.finance-workspace .kpi-sub,.finance-workspace .kpi-feature .kpi-sub,.finance-workspace .kpi-feature .kpi-of{color:var(--muted);opacity:1;font-size:11px;margin-top:10px}
+.finance-workspace .kpi-delta{margin-top:16px}
+.finance-workspace .trend-light{background:transparent;color:var(--muted);padding:0;font-size:11px}
+.finance-workspace .chip{padding:0;background:transparent;font-size:11px;font-weight:400;white-space:normal}
+.finance-workspace .chip-green{color:var(--muted)}
+.finance-workspace .kpi-delta .chip::before,.finance-workspace .bar-var .chip::before{display:none}
+.finance-workspace .chip-red{color:var(--red-text)}
+.finance-workspace .banner{padding:14px 18px;font-size:12px;line-height:1.65;background:var(--surface-2);color:var(--muted);border:0;border-radius:9px}
+.finance-workspace .banner-amber{border-left:2px solid var(--amber)}
+.finance-workspace .accent-blue,.finance-workspace .accent-gold{border-left:1px solid var(--line)}
+.finance-workspace .hint,.finance-workspace .fine{font-size:11px;line-height:1.6;color:var(--muted)}
+.finance-workspace .fine{margin-top:20px}
+.finance-workspace .intro,.finance-workspace .comment-text{font-size:13px;line-height:1.85;font-weight:400}
+.finance-workspace ul.health{gap:0;font-size:12px}
+.finance-workspace ul.health li{padding:12px 0;gap:20px;align-items:baseline}
+.finance-workspace ul.health .amt{font-size:12px;flex-shrink:0}
+.finance-workspace .health .catcell{flex-wrap:wrap;gap:6px;line-height:1.75}
+.finance-workspace .health .c-green{color:var(--muted)}
+.finance-workspace .health .dot-green{background:var(--line-strong)}
+.finance-workspace .tag{background:var(--surface-2);color:var(--muted);text-transform:none;letter-spacing:0;padding:3px 7px}
+/* Column alignment and grouped totals carry table structure; no row dividers. */
+.finance-workspace .ftable{font-size:12px;min-width:680px;font-variant-numeric:tabular-nums}
+.finance-workspace .dtable{min-width:900px}
+.finance-workspace .ftable th{font-size:10px;text-transform:none;letter-spacing:0;white-space:normal;line-height:1.5;background:transparent;padding:12px 14px 20px;border:0}
+.finance-workspace .ftable td{border:0;padding:14px;line-height:1.65}
+.finance-workspace .ftable tbody tr:nth-child(even):not(.total):not(.grouptot):not(.granded):not(.surplus):not(.grouphead):not(.section-label) td{background:color-mix(in srgb,var(--surface-2) 45%,var(--surface))}
+.finance-workspace .ftable tbody tr:hover:not(.total):not(.grouptot):not(.granded):not(.surplus) td,.finance-workspace .ftable tbody tr:focus-within td{background:var(--hover-wash)}
+.finance-workspace .ftable .c-green{color:var(--muted)}
+.finance-workspace .ftable .strong{font-weight:500}
+.finance-workspace .ftable tr.total td,.finance-workspace .ftable tr.grouptot td{background:var(--surface-2);font-weight:500;padding-block:16px}
+.finance-workspace .ftable tr.granded td,.finance-workspace .ftable tr.surplus td{background:var(--neutral-soft);color:var(--ink);font-weight:600;padding-block:20px}
+.finance-workspace .ftable tr.section-label td,.finance-workspace .ftable tr.grouphead td{padding-top:28px;padding-bottom:14px;font-weight:500;font-size:13px;background:var(--surface)}
+.finance-workspace .ftable tr.subrow td{font-size:11px;color:var(--muted)}
+.finance-workspace .ftable tr.subrow td:first-child{padding-left:30px}
+.finance-workspace .ftable .catcell{gap:0;line-height:1.65}
+.finance-workspace .ftable .catcell>.dot{display:none}
+.finance-workspace .calc-mark{font-size:9px;color:var(--faint)}
+.finance-workspace .school-link b{font-size:12px;line-height:1.5}
+.finance-workspace .school-link small{font-size:10px;margin-top:7px;white-space:normal}
+.finance-workspace .summary-amount{display:block;font-weight:500;white-space:nowrap}
+.finance-workspace .summary-amount small{display:block;font-size:10px;font-weight:400;margin-top:6px}
+.finance-workspace .dtable .grouphead .btn{background:transparent;border:0;color:var(--muted);font-size:11px}
+.finance-workspace .dtable .grouphead .btn:hover{background:var(--hover-wash);color:var(--ink)}
+.finance-workspace .statement-toolbar{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.finance-workspace .statement-toolbar .search{width:min(100%,330px);border:1px solid var(--line);padding:10px 12px;background:var(--surface)}
+.statement-option{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);cursor:pointer}
+.statement-option input{accent-color:var(--ink)}
+.statement-help{font-size:11px;color:var(--muted);margin-left:auto;max-width:540px}
+.statement-help summary{cursor:pointer;padding:8px 0}
+.statement-help[open]{flex-basis:100%;margin-left:0;max-width:none}
+.statement-help .intro{margin-top:8px}
+.finance-workspace .ties{margin-top:18px;gap:12px;font-size:11px}
+.finance-workspace .tie{font-weight:400}
+.finance-workspace .item-card{border:0;border-radius:8px;padding:16px 0;margin-bottom:12px}
+.finance-workspace .item-card:has(input){background:var(--surface-2);padding:16px}
+.finance-workspace .item-card .row{gap:24px}
+.finance-workspace .item-card b{font-weight:500;font-size:13px}
+.finance-workspace .item-card .notes{margin-top:8px;line-height:1.75;font-size:11px}
+.finance-workspace .pay{font-size:16px;font-weight:500}
+.finance-workspace .freq{font-size:11px;margin-top:4px;color:var(--muted)}
+.finance-workspace .empty{border:0;background:var(--surface-2);padding:20px;font-size:12px;text-align:left}
+.finance-workspace .mini-label{font-size:11px;letter-spacing:0;text-transform:none;color:var(--muted);margin-bottom:18px}
+.finance-workspace .looking{gap:32px}
+.finance-workspace .tl-sub{margin-top:32px;margin-bottom:22px;font-size:13px;font-weight:500}
+.finance-workspace .recon{padding-left:18px;font-size:12px;gap:18px;line-height:1.8}
+.finance-workspace .foot{font-size:10px;margin-top:0}
+.finance-workspace .bar-label{font-size:12px;line-height:1.6}
+.finance-workspace .bar-label a{color:var(--ink)}
+.finance-workspace .legend{font-size:11px}
+.finance-workspace .legend-note{font-size:10px}
+.finance-workspace .bar-val{font-size:11px;gap:5px}
+.finance-workspace .bar-budget{background:var(--line-strong)}
+.finance-workspace .sw-budget{background:var(--line-strong)}
+/* Signed data shares one zero baseline across all rows, including negative budgets. */
+.signed-track{position:relative}
+.bar-lane{height:9px;position:relative}
+.bar-lane .bar{position:absolute;min-width:0;border-radius:3px}
+.bar-zero{position:absolute;top:-5px;bottom:-5px;width:1px;background:var(--line-strong);z-index:1}
+.chart-revealed .bar-negative{transform-origin:right}
+.board-actions-pop button:disabled{opacity:.45;cursor:default}
+@container page (max-width:1050px){.finance-workspace .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container card (max-width:430px){
+ .finance-workspace ul.health li{flex-direction:column;gap:6px;align-items:flex-start;padding-block:14px}
+ .finance-workspace ul.health .amt{white-space:normal}
+}
+@media(max-width:600px){
+ .finance-workspace{gap:24px;padding-top:20px}
+ .finance-workspace .ph-title h1{font-size:25px}
+ .finance-workspace .ph-pills{gap:20px;flex:1}
+ .finance-workspace .ph-actions{width:auto;margin-left:auto}
+ .finance-workspace .card{padding:20px 16px}
+ .finance-workspace .grid4{grid-template-columns:1fr}
+ .finance-workspace .statement-toolbar{gap:12px}
+ .statement-help{margin-left:0}
+ .finance-workspace .kpi-value{font-size:30px}
+}
+@media print{
+ .finance-workspace{gap:20px;padding:0}
+ .finance-workspace .ph-tabs,.statement-toolbar,.finance-workspace .card-tools,.finance-workspace .grouphead .btn{display:none!important}
+ .finance-workspace .scroll-x{overflow:visible;break-inside:auto}
+ .finance-workspace .ftable,.finance-workspace .dtable{min-width:0;font-size:9px}
+ .finance-workspace .ftable th,.finance-workspace .ftable td{padding:8px 5px}
+ .finance-workspace .ftable tr{break-inside:avoid}
+ .finance-workspace .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

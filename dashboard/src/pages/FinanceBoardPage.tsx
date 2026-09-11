@@ -14,18 +14,22 @@ import { DetailsTab } from "@/features/finance/DetailsTab";
 import { ImportPdfDialog } from "@/features/finance/ImportPdfDialog";
 import { TimelineCard } from "@/features/finance/TimelineCard";
 import { usePeriod } from "@/hooks/usePeriod";
+import { useAccess } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
 import { clone, countChangedRows } from "@/lib/editing";
 import { LATEST } from "@/lib/period";
 import type { Board, VersionInfo } from "@/lib/types";
 import { when } from "@/lib/format";
+import { BoardMenu, usePresentation } from "@/components/BoardMenu";
 
 export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
+  const { presenting, setPresenting } = usePresentation();
   const { unit = "" } = useParams();
   const units = useUnits();
   // The shared reporting period. Every read below follows it; editing pins it until the session ends.
   const { selection, setSelection, label: periodLabel } = usePeriod();
   const school = units.data?.find((u) => u.code === unit);
+  const can = useAccess();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Board | null>(null);
   const [baseline, setBaseline] = useState<Board | null>(null);
@@ -75,7 +79,8 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   if (approved.isPending || units.isPending) return <Loading what="finance board" />;
   if (approved.error && !missing) return <ErrorState error={approved.error} retry={() => approved.refetch()} />;
   if (missing && (!editing || draftBoard.error)) return (
-    <NoBoard name={school?.name ?? unit} eyebrow={eyebrowFor(school)} period={periodLabel} single={selection.kind === "month"} draft={openDraft}
+    <NoBoard name={school?.name ?? unit} eyebrow={eyebrowFor(school)} period={periodLabel} single={selection.kind === "month"}
+      draft={can("boards.edit") ? openDraft : undefined}
       onOpenDraft={onBeginEdit} onLatest={() => setSelection(LATEST)} />
   );
   if (missing && !draft) return <Loading what="draft" />;
@@ -124,27 +129,31 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
             </Pill>
           ) : (
             <PeriodPicker note={selection.kind !== "month" ? board.meta.asAt : undefined}
-              extra={<button type="button" className="rowbtn pencil pill-pencil" title="Open a draft and change its reporting period" aria-label="Open a draft and change its reporting period"
-                onClick={() => { onBeginEdit(); setPeriodEdit(board.meta.asAt); }}>✎</button>} />
+              extra={can("boards.edit") ? <button type="button" className="rowbtn pencil pill-pencil" title="Open a draft and change its reporting period" aria-label="Open a draft and change its reporting period"
+                onClick={() => { onBeginEdit(); setPeriodEdit(board.meta.asAt); }}>✎</button> : undefined} />
           )}
           <Pill label="Version" title={board.meta.approvedAt ? `Approved ${when(board.meta.approvedAt)}` : `Last saved ${when(board.meta.lastSaved)}`}>
             v{board.meta.version} · {status === "APPROVED" ? "approved" : status.toLowerCase().replace("_", " ")}
-            {!editing && openDraft && <> <Badge tone="amber" title={`Open draft v${openDraft.versionNo}${openDraft.period ? ` (${openDraft.period})` : ""} to review, edit and publish it`} onClick={onBeginEdit}>draft v{openDraft.versionNo}{openDraft.period ? ` · ${openDraft.period}` : ""} · open ›</Badge></>}
+            {!editing && openDraft && can("boards.edit") && <> <Badge tone="amber" title={`Open draft v${openDraft.versionNo}${openDraft.period ? ` (${openDraft.period})` : ""} to review, edit and publish it`} onClick={onBeginEdit}>draft v{openDraft.versionNo}{openDraft.period ? ` · ${openDraft.period}` : ""} · open ›</Badge></>}
             {dirty && <> <Badge tone="amber" title="Edited but not saved">unsaved</Badge></>}
           </Pill>
         </>}
         actions={<>
-          <Button onClick={() => fileInput.current?.click()} title="Read the monthly operating report (PDF) into this board">Upload report PDF</Button>
-          <input ref={fileInput} type="file" accept="application/pdf,.pdf" className="sr-only" tabIndex={-1} aria-hidden="true"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); e.target.value = ""; }} />
-          <Button onClick={() => window.print()}>Print</Button>
+          {presenting ? <Button onClick={() => setPresenting(false)}>Exit presentation</Button> : <BoardMenu items={[
+            { label: "Present", action: () => setPresenting(true) },
+            ...(can("imports.write") ? [{ label: "Upload report PDF", action: () => fileInput.current?.click(), disabled: editing }] : []),
+            { label: "Print", action: () => window.print() },
+          ]} />}
+          {can("imports.write") && <>
+            <input ref={fileInput} type="file" accept="application/pdf,.pdf" className="sr-only" tabIndex={-1} aria-hidden="true"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) setPdf(f); e.target.value = ""; }} />
+          </>}
         </>}
         tabs={<>
           <div className="tabs">
             <NavLink end to={`/finance/${unit}`} className="tab">Overview</NavLink>
-            <NavLink to={`/finance/${unit}/details`} className="tab">Details <small>every line item</small></NavLink>
+            <NavLink to={`/finance/${unit}/details`} className="tab">Line items</NavLink>
           </div>
-          {tab === "details" && <div className="tab-tools"><button type="button" className={`toggle${hideZeros ? "" : " on"}`} onClick={() => setHideZeros((h) => !h)}>{hideZeros ? "Show empty lines" : "Hide empty lines"}</button></div>}
         </>}
       />
 
@@ -154,7 +163,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
 
       {tab === "overview"
         ? <OverviewTab unit={unit} board={board} overview={overview.data} editable={editable} onChange={(b) => setDraft(b)} onBeginEdit={onBeginEdit} />
-        : <DetailsTab board={board} editable={editable} hideZeros={hideZeros} onChange={(b) => setDraft(b)} onBeginEdit={onBeginEdit} />}
+        : <DetailsTab board={board} editable={editable} hideZeros={hideZeros} onToggleZeros={() => setHideZeros((h) => !h)} onChange={(b) => setDraft(b)} onBeginEdit={onBeginEdit} />}
       {tab === "overview" && !editing && <TimelineCard unit={unit} />}
 
       {/* Also shown for an unchanged open draft, which still needs a way to be published. */}

@@ -28,8 +28,19 @@ const q = (params: Record<string, string | undefined | null>) => {
 
 export type VersionMode = "LATEST_APPROVED" | "DRAFT";
 
+/** Who is signed in and what the portal lets them do here (GET /api/v1/me). */
+export interface Me {
+  user: { name: string; email: string };
+  roles: string[];
+  permissions: string[];
+  sso: { enabled: boolean; displayName: string; portalUrl: string };
+}
+
 export const api = {
   health: () => request<{ ok: boolean; mongo: string }>("/health"),
+  me: () => request<Me>("/me"),
+  /** Better Auth's sign-out lives outside /api/v1. */
+  signOut: () => fetch((import.meta.env.VITE_API_BASE ?? "") + "/api/auth/sign-out", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }),
   units: () => request<Unit[]>("/units"),
   periods: () => request<Period[]>("/periods"),
   summary: (mode: VersionMode = "LATEST_APPROVED", period: PeriodParams = {}) => request<Summary>(`/finance/summary${q({ versionMode: mode, ...period })}`),

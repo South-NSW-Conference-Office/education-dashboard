@@ -1,6 +1,7 @@
 /** Every line of the operating statement — the one place figures are typed, one line at a time. */
 import { useEffect, useState, type ReactElement } from "react";
 import { Button, Card, Chip, NumberInput, TextInput, useSearch } from "@/components/ui";
+import { useAccess } from "@/hooks/useAuth";
 import { fmt, fmt$ } from "@/lib/format";
 import { addRow, clone, KEYS, matches, removeRow, rowEmpty, sumGroups, sumRows, updateRow } from "@/lib/editing";
 import type { Board, DetailGroup, LineItem } from "@/lib/types";
@@ -25,10 +26,12 @@ function locate(board: Board, open: OpenRow | null, sec: Sec): { gi: number; ri:
   return ri < 0 ? null : { gi, ri };
 }
 
-export function DetailsTab({ board, editable, hideZeros, onChange, onBeginEdit }: {
-  board: Board; editable: boolean; hideZeros: boolean; onChange: (b: Board) => void; onBeginEdit: () => void;
+export function DetailsTab({ board, editable, hideZeros, onToggleZeros, onChange, onBeginEdit }: {
+  board: Board; editable: boolean; hideZeros: boolean; onToggleZeros: () => void; onChange: (b: Board) => void; onBeginEdit: () => void;
 }) {
-  const { query } = useSearch();
+  const { query, setQuery } = useSearch();
+  const can = useAccess();
+  const canEdit = can("boards.edit");
   const q = query.trim().toLowerCase();
   const [open, setOpen] = useState<OpenRow | null>(null);
   // A pencil or “+ Add line” pressed before the draft has loaded is replayed once it arrives.
@@ -45,6 +48,7 @@ export function DetailsTab({ board, editable, hideZeros, onChange, onBeginEdit }
 
   const api: RowApi = {
     editable,
+    canEdit,
     open,
     beginRow(sec, gi, g, ri, r) {
       if (!editable) onBeginEdit();
@@ -78,16 +82,20 @@ export function DetailsTab({ board, editable, hideZeros, onChange, onBeginEdit }
   const anyLines = board.details.income.some((g) => g.rows.length) || board.details.expenditure.some((g) => g.rows.length);
   return (
     <>
-      <Card className="intro-card">
-        <h2 className="h-blue">Full line-item detail</h2>
+      <div className="statement-toolbar">
+        <input type="search" className="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find an account or line item…" aria-label="Filter statement line items" />
+        <label className="statement-option"><input type="checkbox" checked={!hideZeros} onChange={onToggleZeros} /> Show empty lines</label>
+        <details className="statement-help"><summary>How to edit</summary>
         <p className="intro">
-          {anyLines
-            ? <>Enter or update account figures here. Totals and summaries update automatically. <b>Hover and click the pencil to edit</b>, or “+ Add line” to add an account. Changes apply when you save.</>
-            : <>Nothing has been entered yet. Use “+ Add line” under a group to enter the lines from the operating report.</>}
-        </p>
-      </Card>
-      <Section board={board} sec="income" title="Income — line by line" isIncome hideZeros={hideZeros} q={q} api={api} />
-      <Section board={board} sec="expenditure" title="Expenditure — line by line" isIncome={false} hideZeros={hideZeros} q={q} api={api} />
+          {!canEdit
+            ? <>Every line of the operating statement, exactly as entered. Your role is read-only here — figures are edited by the finance team.</>
+            : anyLines
+              ? <>Enter or update account figures here. Totals and summaries update automatically. <b>Hover and click the pencil to edit</b>, or “+ Add line” to add an account. Changes apply when you save.</>
+              : <>Nothing has been entered yet. Use “+ Add line” under a group to enter the lines from the operating report.</>}
+        </p></details>
+      </div>
+      <Section board={board} sec="income" title="Income" isIncome hideZeros={hideZeros} q={q} api={api} />
+      <Section board={board} sec="expenditure" title="Expenditure" isIncome={false} hideZeros={hideZeros} q={q} api={api} />
       {anyLines && (
         <Card accent="blue" title="Surplus / (deficit) from the line items">
           <ul className="health">
@@ -104,6 +112,8 @@ export function DetailsTab({ board, editable, hideZeros, onChange, onBeginEdit }
 
 type RowApi = {
   editable: boolean;
+  /** Whether the portal lets this viewer edit at all — no pencils or “+ Add line” without it. */
+  canEdit: boolean;
   open: OpenRow | null;
   beginRow: (sec: Sec, gi: number, g: DetailGroup, ri: number, r: LineItem) => void;
   beginAdd: (sec: Sec, gi: number) => void;
@@ -146,7 +156,7 @@ function Section({ board, sec, title, isIncome, hideZeros, q, api }: {
           <tr className="granded"><td /><td>Total {isIncome ? "income" : "expenditure"}</td><td>{fmt(total.budget)}</td><td>{fmt(total.actual)}</td><td>{fmt(varOf(total.budget, total.actual))}</td><td>{fmt(total.annualBudget)}</td><td>{fmt(total.eoyEstimate)}</td><td /></tr>
         </tbody>
       </table>
-      <div className="ties"><div className="tie c-green">✓ The Overview categories, KPIs and all-schools summary are calculated from these lines</div>
+      <div className="ties"><div className="tie muted">Totals include all accounts, including filtered and hidden lines.</div>
         {board.reconciliation.some((r) => groups.some((g) => g.group === r.label)) && <div className="tie c-amber">⚖ Figures typed from page 1 of the operating report differ from these lines — see Reconciliation on the Overview tab</div>}</div>
       {hidden > 0 && <p className="fine">{hidden} line(s) with no budget or actual are hidden. Use “Show empty lines” to see them.</p>}
     </Card>
@@ -159,7 +169,7 @@ function GroupRows({ g, gi, rows, gt, openAt, isIncome, sec, api, varOf, VarCell
 }) {
   return (
     <>
-      <tr className="grouphead"><td colSpan={8}><span className="flexrow between">{g.group}<Button size="small" variant="dashed" onClick={() => api.beginAdd(sec, gi)}>+ Add line</Button></span></td></tr>
+      <tr className="grouphead"><td colSpan={8}><span className="flexrow between">{g.group}{api.canEdit && <Button size="small" variant="dashed" onClick={() => api.beginAdd(sec, gi)}>+ Add line</Button>}</span></td></tr>
       {rows.map(({ r, ri }) => {
         const isOpen = !!openAt && openAt.gi === gi && openAt.ri === ri;
         const patch = (p: Partial<LineItem>) => api.patch(sec, gi, ri, r, p);
@@ -184,9 +194,9 @@ function GroupRows({ g, gi, rows, gt, openAt, isIncome, sec, api, varOf, VarCell
                   <button type="button" className="rowbtn ok" title="Keep this line (Enter)" aria-label="Keep this line" onClick={() => api.commit()}>✓</button>
                   <button type="button" className="rowbtn no" title="Cancel (Esc)" aria-label="Cancel editing this line" onClick={() => api.cancel(sec, gi, ri)}>✕</button>
                   <button type="button" className="rowbtn del" title="Remove this line" aria-label="Remove this line" onClick={() => api.remove(sec, gi, ri, r)}>🗑</button>
-                </> : (
+                </> : api.canEdit ? (
                   <button type="button" className="rowbtn pencil" title="Edit this line" aria-label={`Edit ${r.label || "this line"}`} onClick={() => api.beginRow(sec, gi, g, ri, r)}>✎</button>
-                )}
+                ) : null}
               </span>
             </td>
           </tr>

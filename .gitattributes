@@ -1,0 +1,6 @@
+# Shell scripts and deploy files run on Linux hosts — never let a Windows
+# checkout hand them CRLF line endings.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.conf text eol=lf

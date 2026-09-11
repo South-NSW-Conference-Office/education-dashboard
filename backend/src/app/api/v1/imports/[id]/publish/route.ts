@@ -1,3 +1,4 @@
-import { handle, type Params } from "@/lib/http";
+import { guarded, importPerm } from "@/lib/access";
 import { publishImport } from "@/controllers/imports";
-export const POST = handle(async (req: Request, ctx: Params<"id">) => publishImport(req, (await ctx.params).id));
+import { type Params } from "@/lib/http";
+export const POST = guarded(importPerm, async (req: Request, ctx: Params<"id">) => publishImport(req, (await ctx.params).id));

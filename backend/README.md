@@ -27,6 +27,31 @@ npm test                          # service tests
 npm run typecheck
 ```
 
+## Portal SSO & access control (off by default)
+
+The app is an SSO consumer of the Adventist Portal (`login-adventistbot`), following the
+fleet's genericOAuth pattern. With `AUTH_SSO_ENABLED` unset the app runs open, exactly as
+before. With it on (see `.env.example` for the full variable set):
+
+- Better Auth is mounted at `/api/auth/*` (`src/lib/auth.ts`) with the `enterprise-sso`
+  generic-oauth provider (PKCE, portal discovery URL). Sign-in is SSO-only; the callback
+  creates the local shadow user on first arrival. Pinned to `better-auth@1.6.29` exactly —
+  1.7.x drops `auth.api.signInWithOAuth2`, which the probe depends on.
+- `/api/sso/probe` is the portal-launcher handoff (silent `prompt=none` sign-in;
+  `?silent=0` for the login page's explicit button). `/api/sso/config` tells the SPA
+  whether SSO is on.
+- **Authorization is the portal's, not ours**: every `/api/v1` route runs through
+  `guarded(permission)` (`src/lib/access.ts`), which requires a session and then asks the
+  portal's HMAC-signed `/internal/app-access` endpoint for the user's roles/permissions in
+  the bound organization. Fails closed on outage. Vocabulary: `boards.read`, `boards.edit`,
+  `boards.publish`, `imports.write` — mirrored in the portal manifest
+  (`login-adventistbot/backend/src/apps.ts`, slug `education-dashboard`, roles
+  admin / editor / viewer).
+- Local dev alongside the IdP: the IdP frontend owns :3000, so run this backend on another
+  port (`npx next dev -p 3010`) and start the dashboard with
+  `API_PROXY_TARGET=http://localhost:3010`. `BETTER_AUTH_URL` is the BROWSER origin
+  (the Vite host, e.g. `http://localhost:5173`) — the SPA proxy makes `/api` same-origin.
+
 Fill the database one of two ways. Restore the `mongosh` snapshot from the data handover:
 
 ```bash

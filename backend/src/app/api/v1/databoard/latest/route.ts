@@ -1,3 +1,3 @@
-import { handle } from "@/lib/http";
+import { guarded } from "@/lib/access";
 import { getLatest } from "@/controllers/databoard";
-export const GET = handle(async (req: Request) => getLatest(req));
+export const GET = guarded("boards.read", async (req: Request) => getLatest(req));

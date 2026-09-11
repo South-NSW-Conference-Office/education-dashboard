@@ -1,0 +1,212 @@
+# education-dashboard — CI/CD: build backend (arm64) and frontend (amd64)
+# natively on GitHub-hosted runners, push both to GHCR, then deploy each to
+# its own host — backend to morpheus via its self-hosted runner, frontend to
+# snswserver over SSH. Mirrors login-adventistbot's deploy.yml, the proven
+# pattern for this split in this project group.
+#
+#   * ALL Docker building happens in the `build-*` jobs on GitHub-hosted
+#     runners: backend natively for linux/arm64 (morpheus is aarch64) on an
+#     ubuntu-24.04-arm runner, frontend for linux/amd64 on ubuntu-latest.
+#   * `deploy-backend` runs ON morpheus (self-hosted runner, registered to
+#     THIS repo) and does ZERO building — pull the fresh image and restart.
+#   * `deploy-frontend` reaches snswserver over SSH (scp the compose file +
+#     release script, then run the script remotely).
+#   * Backend stays tailnet-only. Frontend is the public front door via the
+#     box's shared nginx-proxy + acme-companion stack, which terminates HTTPS
+#     for education.adventist.bot.
+# ---------------------------------------------------------------------------
+
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BACKEND_IMAGE: ghcr.io/south-nsw-conference-office/education-dashboard-backend
+  FRONTEND_IMAGE: ghcr.io/south-nsw-conference-office/education-dashboard-frontend
+
+jobs:
+  # -------------------------------------------------------------------------
+  # TEST: the backend's service suite runs before anything builds.
+  # -------------------------------------------------------------------------
+  test-backend:
+    name: Backend tests & typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci --legacy-peer-deps
+      - name: Typecheck
+        working-directory: backend
+        run: npm run typecheck
+      - name: Tests
+        working-directory: backend
+        run: npm test
+
+  # -------------------------------------------------------------------------
+  # BUILD BACKEND: native arm64 build on a GitHub-hosted ARM runner.
+  # -------------------------------------------------------------------------
+  build-backend:
+    name: Build & push backend (arm64)
+    needs: test-backend
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      sha: ${{ steps.vars.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compute short SHA
+        id: vars
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.BACKEND_IMAGE }}:${{ steps.vars.outputs.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  # -------------------------------------------------------------------------
+  # BUILD FRONTEND: native amd64 build on a regular GitHub-hosted runner.
+  # -------------------------------------------------------------------------
+  build-frontend:
+    name: Build & push frontend (amd64)
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.vars.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Typecheck
+        working-directory: dashboard
+        run: |
+          npm ci
+          npm run typecheck
+
+      - name: Compute short SHA
+        id: vars
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build & push frontend
+        uses: docker/build-push-action@v7
+        with:
+          context: dashboard
+          file: dashboard/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:${{ steps.vars.outputs.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  # -------------------------------------------------------------------------
+  # DEPLOY BACKEND: pull-only release on the self-hosted morpheus runner.
+  # -------------------------------------------------------------------------
+  deploy-backend:
+    name: Deploy backend on morpheus (pull-only)
+    needs: build-backend
+    runs-on: [self-hosted, morpheus]
+    steps:
+      - uses: actions/checkout@v7
+
+      # .env.backend is placed there once, manually, and is gitignored — we
+      # never overwrite it here. Home-dir deploy like CFO's backend on this
+      # host: /opt on morpheus is root-owned and the runner has no sudo.
+      - name: Sync compose file into deploy dir
+        run: |
+          mkdir -p /home/morpheus/education-dashboard
+          cp deploy/docker-compose.morpheus.yml /home/morpheus/education-dashboard/docker-compose.yml
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull & restart backend
+        working-directory: /home/morpheus/education-dashboard
+        env:
+          IMAGE_TAG: ${{ needs.build-backend.outputs.sha }}
+        run: |
+          docker compose pull
+          docker compose up -d --remove-orphans
+
+      - name: Prune dangling images
+        run: docker image prune -f
+
+  # -------------------------------------------------------------------------
+  # DEPLOY FRONTEND: pull-only release on snswserver, over SSH.
+  # -------------------------------------------------------------------------
+  deploy-frontend:
+    name: Deploy frontend on snswserver (pull-only, over SSH)
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-education-dashboard-snswserver
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Copy compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 107.155.65.229
+          username: snswcomms
+          key: ${{ secrets.SNSW_SSH_KEY }}
+          source: "deploy/docker-compose.snswserver.yml,deploy/snswserver-release.sh"
+          target: /opt/education-dashboard/
+
+      # The release lives in deploy/snswserver-release.sh (appleboy/ssh-action
+      # mangles multi-line script blocks — see the script's header), and it
+      # asserts the running image carries this run's tag before going green.
+      - name: Pull and restart on server
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: 107.155.65.229
+          username: snswcomms
+          key: ${{ secrets.SNSW_SSH_KEY }}
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE_TAG
+          script: bash /opt/education-dashboard/deploy/snswserver-release.sh
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE_TAG: ${{ needs.build-frontend.outputs.sha }}

@@ -1,0 +1,51 @@
+# education-dashboard backend — production docker-compose for the **morpheus**
+# host (NVIDIA GB10, linux/arm64). Tailscale-only — Better Auth, the Mongo
+# access and the portal app-access credential all live here, never on the
+# public snswserver host. The frontend (deploy/docker-compose.snswserver.yml)
+# is the only public surface and reverse-proxies /api to this over Tailscale.
+# =============================================================================
+#
+# This file lives at /home/morpheus/education-dashboard/docker-compose.yml on
+# morpheus (home-dir deploy, same as CFO's backend on this host — /opt there
+# is root-owned) and is the single source of truth for the running stack. CI's
+# deploy-backend job copies it here, then runs `docker compose pull && up -d`.
+# Morpheus does ZERO building — it only pulls the prebuilt linux/arm64 image.
+#
+# NETWORK EXPOSURE — loopback/tailnet only, NEVER 0.0.0.0:
+#   - 127.0.0.1:4200 — host-local (debugging on morpheus itself).
+#   - 100.87.6.30:4200 — morpheus's Tailscale IP, so the frontend nginx on
+#     snswserver can reach it over WireGuard.
+#
+# Mongo (morpheus's own host mongod) is reached over host.docker.internal,
+# same as every other backend on this host. The portal's app-access authority
+# (login-adventistbot-backend, same host) is reached on 100.87.6.30:4100.
+# =============================================================================
+
+services:
+  backend:
+    image: ghcr.io/south-nsw-conference-office/education-dashboard-backend:${IMAGE_TAG:-latest}
+    container_name: education-dashboard-backend
+    restart: unless-stopped
+
+    env_file:
+      - .env.backend
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    ports:
+      - "127.0.0.1:4200:4200"
+      - "100.87.6.30:4200:4200"
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4200/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

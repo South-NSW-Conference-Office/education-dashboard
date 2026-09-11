@@ -1,0 +1,137 @@
+/* Reading-first dashboard. Color marks exceptions; figures and labels carry the rest. */
+.education-board{display:flex;flex-direction:column;gap:36px}
+.education-board .page-header{order:-4;gap:16px}
+.education-board .ph-title h1{font-size:32px;font-weight:400;letter-spacing:-.035em}
+.education-board .ph-pills{align-items:center;gap:20px}
+.education-board .pill{background:transparent;border:0;border-radius:0;padding:0;min-width:0}
+.education-board .pill label{font-size:10px;text-transform:none;letter-spacing:0;color:var(--muted)}
+.education-board .pill b{font-size:12px}
+.education-board .pill-btn{padding:4px 0;border:0;border-radius:4px;background:transparent}
+.education-board .pill-btn:hover{background:var(--hover-wash)}
+.education-board .pill-note{max-width:260px;white-space:normal}
+.education-board .ph-actions .btn{font-size:12px;padding:8px 11px}
+.board-pulse{order:-3;display:flex;align-items:center;flex-wrap:wrap;gap:22px;padding:14px 0;font-size:12px;color:var(--muted)}
+.pulse-label{margin-right:4px}.pulse-count{display:flex;align-items:baseline;gap:7px}
+.pulse-count b{font-size:19px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.pulse-red b{color:var(--red-text)}.pulse-amber b{color:var(--amber-text)}
+.board-pulse a{margin-left:auto;color:var(--muted);font-size:12px}
+.education-board .cash-section{order:-2}
+.education-board .section-head{margin:0;align-items:center;min-height:24px}
+.education-board .section-head h2{font-size:14px;font-weight:500;letter-spacing:-.01em;text-transform:none;color:var(--ink)}
+.education-board .section-head .rule{background:transparent}
+.education-board .section-head .hint{font-size:11px}
+.education-board .cash-section .grid4{gap:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.education-board .cash-cell{border:0;border-radius:0;background:transparent;color:var(--ink);padding:22px;border-right:1px solid var(--line)}
+.education-board .cash-cell:last-child{border-right:0}
+.education-board .cash-cell label,.education-board .cash-cell.kpi-feature label{font-size:11px;text-transform:none;letter-spacing:0;color:var(--muted);opacity:1}
+.education-board .cash-cell .fig{font-size:clamp(24px,3cqi,34px);margin-top:12px;letter-spacing:-.04em;font-weight:400}
+.education-board .cash-cell .delta,.education-board .cash-cell.kpi-feature .delta{color:var(--muted);opacity:1;font-size:11px;margin-top:8px}
+.education-board .cash-cell.kpi-feature input.txt{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.notes-toggle{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;padding:5px 0;text-decoration:underline;text-underline-offset:4px}
+.notes-toggle:disabled{opacity:.5;cursor:default}
+.education-board .matrix{table-layout:fixed;min-width:760px}
+.education-board .matrix th:first-child{width:23%}
+.education-board .matrix th{font-size:11px;letter-spacing:0;text-transform:none;padding:12px 12px 22px;border:0}
+.education-board .matrix td{padding:22px 12px;border:0}
+.education-board .matrix td.school-name{display:table-cell;font-size:13px;border:0}
+.education-board .matrix tbody tr:nth-child(2n){background:color-mix(in srgb,var(--surface-2) 45%,var(--surface))}
+.education-board .matrix tbody tr:hover,.education-board .matrix tbody tr:focus-within{background:var(--hover-wash)}
+.education-board .matrix td.school-name small{font-size:10px;margin-top:4px}
+.education-board .matrix tbody tr:last-child td.school-name{border-bottom:0}
+.education-board .light{position:relative;width:40px;height:40px;border:11px solid transparent;background-clip:padding-box;box-shadow:none;border-radius:50%;vertical-align:middle;overflow:visible}
+.education-board .light-green{background-color:var(--green);--light-glow:var(--green)}
+.education-board .light-amber{background-color:var(--amber);--light-glow:var(--amber)}
+.education-board .light-red{background-color:var(--red);--light-glow:var(--red)}
+.education-board .matrix .light::after{content:"";position:absolute;inset:-1px;border:1px solid var(--light-glow);border-radius:50%;box-shadow:0 0 5px var(--light-glow);pointer-events:none;animation:status-glow 2.6s ease-out infinite}
+.education-board button.light{cursor:pointer;touch-action:manipulation}
+.education-board button.light:disabled{cursor:wait;opacity:.6}
+@keyframes status-glow{0%{transform:scale(.9);opacity:.55}75%,100%{transform:scale(2.05);opacity:0}}
+@media(prefers-reduced-motion:reduce){.education-board .matrix .light::after{animation:none;opacity:0}}
+@media print{.education-board .matrix .light::after{display:none}}
+.education-board button.light:hover{box-shadow:0 0 0 1px var(--line-strong);transform:none}
+.education-board button.light:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.education-board .light.mini,.education-board .light.ov{width:12px;height:12px;border:0}
+.education-board .light-legend{border:0;padding-top:24px;gap:16px;font-size:11px}
+.education-board .light-legend .legend-note{font-size:9px;max-width:330px}
+.education-board .auto-chip .chip{background:transparent;padding:0;font-size:10px}
+.education-board .auto-chip .chip:before{display:none}
+.education-board .supporting-note{display:none}
+.education-board .school-card .head{background:transparent;color:var(--ink);border:0;padding:28px 24px}
+.education-board .school-card .head h3{font-size:14px;font-weight:500}
+.education-board .school-card .head .loc{color:var(--muted);font-size:11px;margin-top:5px}
+.education-board .school-card .body{padding:4px 24px 24px;gap:24px}
+.education-board .metric-row{border:0;padding:0;gap:16px;align-items:baseline}
+.education-board .metric-row.col{align-items:stretch;gap:12px;padding-block:8px}
+.education-board .metric-row .k{font-size:11px}
+.education-board .metric-row .v{font-size:12px}
+.education-board:not(.is-editing) .school-card .badge-blue{display:none}
+.education-board .school-card .foot-row{padding:8px 24px 28px;border:0;gap:10px}
+.education-board .school-card .foot-row .k{font-size:9px;text-transform:none;letter-spacing:0}
+.education-board .school-card .foot-row .btn{background:none;border:0;padding:0;font-size:11px}
+.education-board .panel-head .main{font-size:13px;font-weight:500}
+.education-board .panel-head .meta{display:none}
+.education-board .item .txt .main{font-size:12px;font-weight:400}
+.education-board .item .txt .meta{font-size:11px}
+.education-board .rating{background:transparent;padding:2px 0;min-width:66px;font-size:9px}
+.education-board .star{color:var(--muted)}
+.education-board .section{gap:18px}
+.education-board .schools-grid,.education-board .grid2{gap:20px}
+.education-board .school-card{border-radius:14px}
+.education-board .metric-row .v{font-variant-numeric:tabular-nums;line-height:1.65;overflow-wrap:anywhere}
+.education-board .enrol{margin-top:8px;padding:18px 16px;background:var(--surface-2);border-radius:10px}
+.education-board .enrol-top{gap:12px;flex-wrap:wrap}
+.education-board .spark{margin-top:18px;margin-bottom:12px}
+.education-board .enrol-label{font-size:10px}
+.education-board .progress{height:5px;border:0;margin-top:4px}
+.education-board .panel{padding:8px}
+.education-board .panel-head{padding:18px 16px;border:0}
+.education-board .item{padding:18px 16px;border:0;gap:16px}
+.education-board .item .txt .main{line-height:1.7}
+.education-board .item .txt .meta{margin-top:6px;line-height:1.6}
+/* Motion affects marks only. Labels and numeric values remain stationary and visible. */
+.chart-revealed .bar,.progress.chart-revealed>i{transform-origin:left;animation:chart-grow 850ms cubic-bezier(.22,1,.36,1) both}
+.spark.chart-revealed .spark-line{stroke-dasharray:100;animation:chart-draw 1100ms ease-out both}
+.spark.chart-revealed .spark-area,.spark.chart-revealed .spark-end{animation:chart-fade 1000ms ease-out both}
+@keyframes chart-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes chart-draw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+@keyframes chart-fade{from{opacity:0}}
+.bars .bar-row{padding-block:14px;row-gap:8px}
+.bars .bar-track{gap:5px}
+.bars .legend{margin-bottom:20px}
+@media(prefers-reduced-motion:reduce){
+ .chart-revealed .bar,.progress.chart-revealed>i,.spark.chart-revealed .spark-line,.spark.chart-revealed .spark-area,.spark.chart-revealed .spark-end{animation:none;stroke-dasharray:none}
+}
+@media print{
+ .chart-revealed .bar,.progress.chart-revealed>i,.spark.chart-revealed .spark-line,.spark.chart-revealed .spark-area,.spark.chart-revealed .spark-end{animation:none;stroke-dasharray:none}
+}
+.board-publication{font-weight:400;color:var(--muted);font-size:10px}
+.board-actions{position:relative;font-size:12px}
+.board-actions summary{list-style:none;cursor:pointer;color:var(--muted);padding:8px;border-radius:6px;display:flex;gap:10px;align-items:center}
+.board-actions summary::-webkit-details-marker{display:none}
+.board-actions summary:hover,.board-actions[open] summary{background:var(--hover-wash);color:var(--ink)}
+.board-actions summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.board-actions-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:25;width:164px;padding:5px;background:var(--surface);border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow)}
+.board-actions-pop button{display:block;width:100%;text-align:left;background:transparent;border:0;padding:10px;border-radius:5px;color:var(--ink);font:inherit;cursor:pointer}
+.board-actions-pop button:hover{background:var(--hover-wash)}
+.nav-swatch{background:var(--line-strong);width:5px;height:5px;border-radius:50%}
+.nav-item.active .nav-swatch{background:var(--gold)}
+.search-wrap{max-width:300px}.search{background:transparent;border-color:transparent;border-radius:7px;font-size:12px}
+.search:hover,.search:focus{background:var(--surface);border-color:var(--line)}
+.presenting .sidebar,.presenting .topbar,.presenting .scrim{display:none!important}
+.presenting .content{max-width:1440px;padding:32px 40px}
+#school-snapshots{scroll-margin-top:80px}
+@container page (min-width:960px){.education-board .schools-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container page (min-width:1250px){.education-board .schools-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:600px){
+ .education-board{gap:20px}.education-board .ph-title h1{font-size:27px}
+ .education-board .ph-pills{gap:14px}.board-pulse{gap:12px}.board-pulse a{width:100%;margin:0}
+ .education-board .cash-cell{border-right:0;border-bottom:1px solid var(--line);padding:18px}
+ .education-board .cash-cell:last-child{border-bottom:0}.presenting .content{padding:20px 14px}
+}
+@media print{
+ .education-board .supporting-note{display:block}
+ .education-board .ph-actions,.notes-toggle,.board-pulse a{display:none!important}
+ .education-board .section,.education-board .school-card{break-inside:avoid}
+ .education-board .scroll-x{overflow:visible}.education-board .matrix{min-width:0}
+ .education-board .cash-section .grid4{grid-template-columns:repeat(4,minmax(0,1fr))}
+}

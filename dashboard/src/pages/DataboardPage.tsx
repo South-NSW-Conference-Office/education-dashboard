@@ -2,14 +2,15 @@
  * Weekly education databoard. Judgement fields are typed; Finance and Overall lights, the operating
  * result and each school's budget and variance arrive already derived from the finance boards.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDataboard, useSaveDataboard } from "@/hooks/queries";
 import { PageHeader, Pill } from "@/components/layout/PageHeader";
-import { Sparkline, enrolDelta } from "@/components/charts";
+import { ProgressBar, Sparkline, enrolDelta } from "@/components/charts";
 import { PeriodPicker } from "@/components/PeriodPicker";
-import { Badge, Banner, Button, Card, Chip, Empty, ErrorState, Loading, NumberInput, SectionHead, TextInput, TrafficLight, nextLight, useToast } from "@/components/ui";
+import { Badge, Button, Card, Chip, Empty, ErrorState, Loading, NumberInput, SaveBar, SectionHead, TextInput, TrafficLight, nextLight, useToast } from "@/components/ui";
 import { usePeriod } from "@/hooks/usePeriod";
+import { useAccess } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
 import { clone } from "@/lib/editing";
 import { compact$, STATUS_LABEL, when } from "@/lib/format";
@@ -26,7 +27,18 @@ export function DataboardPage() {
   const save = useSaveDataboard();
   const toast = useToast();
   const { selection, setSelection, label } = usePeriod();
+  const can = useAccess();
   const [editing, setEditing] = useState(false);
+  const [statusOnly, setStatusOnly] = useState(false);
+  const editingFields = editing && !statusOnly;
+  const [showNotes, setShowNotes] = useState(false);
+  const [presenting, setPresenting] = useState(false);
+  useEffect(() => {
+    document.body.classList.toggle("presenting", presenting);
+    const escape = (e: KeyboardEvent) => { if (e.key === "Escape") setPresenting(false); };
+    window.addEventListener("keydown", escape);
+    return () => { document.body.classList.remove("presenting"); window.removeEventListener("keydown", escape); };
+  }, [presenting]);
   const [draft, setDraft] = useState<Databoard | null>(null);
   useEffect(() => { if (!editing) setDraft(null); }, [editing]);
   useEffect(() => { setEditing(false); }, [selection]);
@@ -45,6 +57,20 @@ export function DataboardPage() {
   if (q.error || !q.data) return <ErrorState error={q.error} retry={() => q.refetch()} />;
   const d = editing && draft ? draft : q.data;
   const set = (fn: (x: Databoard) => void) => { const c = clone(d); fn(c); setDraft(c); };
+  const cycleStatus = (ri: number, key: "enrolments" | "staffing" | "buildings" | "whs") => {
+    if (save.isPending) return;
+    const updated = clone(d);
+    updated.matrix[ri].status[key] = nextLight[updated.matrix[ri].status[key]];
+    // Preview the same worst-of-five rule used by the server when saving.
+    const row = updated.matrix[ri];
+    const states = [row.status.finance, row.status.enrolments, row.status.staffing, row.status.buildings, row.status.whs];
+    row.status.overall = states.includes("red") ? "red" : states.includes("amber") ? "amber" : "green";
+    const school = updated.schools.find((s) => s.unit === row.unit);
+    if (school) school.overall = row.status.overall;
+    if (!editing) setStatusOnly(true);
+    setDraft(updated);
+    setEditing(true);
+  };
 
   const doSave = async (publish: boolean) => {
     if (!draft) return;
@@ -56,36 +82,49 @@ export function DataboardPage() {
   };
 
   return (
-    <>
-      <PageHeader eyebrow="Education · South New South Wales" title="Weekly education databoard"
+    <div className={`education-board${editingFields ? " is-editing" : ""}`}>
+      <PageHeader eyebrow="South New South Wales · Education" title="Weekly overview"
         pills={<>
-          <Pill label="Week ending">{editing && draft ? <input className="pill-input" value={draft.weekEnding} onChange={(e) => set((x) => { x.weekEnding = e.target.value; })} /> : d.weekEnding}</Pill>
-          <Pill label="Status" title={d.lastUpdated ? `Updated ${when(d.lastUpdated)}` : undefined}>{d.status === "PUBLISHED" ? "Published" : "Draft"}</Pill>
+          <Pill label="Week ending">{editingFields && draft ? <input className="pill-input" value={draft.weekEnding} onChange={(e) => set((x) => { x.weekEnding = e.target.value; })} /> : d.weekEnding}<span className="board-publication" title={d.lastUpdated ? `Updated ${when(d.lastUpdated)}` : undefined}>· {d.status === "PUBLISHED" ? "Published" : "Draft"}</span></Pill>
           <PeriodPicker label="Finance as at" disabled={editing} note={selection.kind !== "month" ? financeAsAt(d) : undefined} />
         </>}
-        actions={editing ? <>
-          <Button variant="primary" onClick={() => doSave(true)} disabled={save.isPending}>Save &amp; publish</Button>
-          <Button onClick={() => doSave(false)} disabled={save.isPending}>Save draft</Button>
-          <Button onClick={() => setEditing(false)}>Cancel</Button>
-        </> : <>
-          <Button variant="primary" onClick={() => { setDraft(clone(q.data!)); setEditing(true); }}>✎ Edit board</Button>
-          <Button onClick={() => window.print()}>Print</Button>
-        </>} />
+        actions={presenting ? <Button onClick={() => setPresenting(false)}>Exit presentation</Button> : !editing && <BoardActions
+          onPresent={() => setPresenting(true)}
+          onEdit={can("boards.edit") ? () => { setStatusOnly(false); setDraft(clone(q.data!)); setEditing(true); } : undefined}
+          onPrint={() => window.print()} />} />
 
-      {editing && <Banner tone="green"><b>Edit mode.</b> Type into any figure or note and click the Enrolments, Staffing, Buildings and WHS lights to cycle them. The Overall and Finance lights, the operating result and each school's budget and variance are calculated and cannot be changed here.</Banner>}
+      {editing && <SaveBar label={statusOnly ? "Unsaved status changes" : "Editing board"} discardLabel="Discard" saving={save.isPending} onSaveDraft={() => void doSave(false)} onPublish={() => void doSave(true)} onDiscard={() => { if (!save.isPending) setEditing(false); }} />}
+
+      <div className="board-pulse" aria-label="School health summary">
+        <span className="pulse-label">Across {d.matrix.length} sites</span>
+        {(["green", "amber", "red"] as const).map((status) => <span key={status} className={`pulse-count pulse-${status}`}><b>{d.matrix.filter((r) => r.status.overall === status).length}</b> {STATUS_LABEL[status]}</span>)}
+      </div>
+
+      {/* Cash position */}
+      <section className="section cash-section">
+        <SectionHead title="Financial position" hint="All schools" />
+        <div className="grid4">
+          {d.cash.map((c, i) => (
+            <div key={i} className={`card cash-cell${c.feature ? " kpi-feature" : ""}`} title={c.derived ? "Sum of the YTD surplus on each school's finance board" : undefined}>
+              <label>{editingFields && !c.derived ? <TextInput value={c.label} onChange={(v) => set((x) => { x.cash[i].label = v; })} /> : c.label}{c.derived && editingFields && <Badge tone="blue" title="Calculated from the finance boards">auto</Badge>}</label>
+              <div className="fig">{editingFields && !c.derived ? <TextInput value={c.value} onChange={(v) => set((x) => { x.cash[i].value = v; })} /> : c.value}</div>
+              <div className="delta">{editingFields && !c.derived ? <TextInput value={c.delta} onChange={(v) => set((x) => { x.cash[i].delta = v; })} /> : c.delta}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* At a glance */}
-      <section className="section">
-        <SectionHead title="At a glance" hint={`${d.matrix.length} sites · six health measures · ${editing ? "click a light to change it" : "click a school to open its finance board"}`} />
+      <section className="section health-section">
+        <SectionHead title="School health" hint={<button className="notes-toggle" type="button" aria-expanded={showNotes || editingFields} onClick={() => setShowNotes((v) => !v)} disabled={editingFields}>{showNotes ? "Hide notes" : "Show notes"}</button>} />
         <Card solid className="scroll-x">
           <table className="matrix">
             <thead><tr><th>School</th>{COLS.map((c) => <th key={c.key}>{c.label}</th>)}</tr></thead>
             <tbody>
               {d.matrix.map((r, ri) => {
-                const school = d.schools.find((s) => s.unit === r.unit);
                 return (
                   <tr key={r.unit}>
-                    <td className="school-name"><i className="swatch" style={{ background: school?.colour ?? "var(--accent)" }} /><div>{editing ? r.school : <Link to={`/finance/${r.unit}`}>{r.school}</Link>}<small>{r.sub}</small></div></td>
+                    <td className="school-name"><div>{editingFields ? r.school : <Link to={`/finance/${r.unit}`}>{r.school}</Link>}<small>{r.sub}</small></div></td>
                     {COLS.map((c) => {
                       const st = (r.status[c.key] ?? "green") as Light;
                       const derived = c.key === "overall" || (c.key === "finance" && r.derived.finance);
@@ -95,14 +134,14 @@ export function DataboardPage() {
                           {c.key === "finance" && !r.derived.finance
                             ? <span className="light-none" role="img" aria-label="No finance board for this period" title={`No approved finance board ${selection.kind === "month" ? `for ${label}` : "in this period"}`}>—</span>
                             : derived
-                              ? <TrafficLight colour={st} title={`${STATUS_LABEL[st]} — ${c.key === "overall" ? "worst of the five measures" : "from the finance board"}`} />
-                              : <TrafficLight colour={st} onCycle={editing ? () => set((x) => { (x.matrix[ri].status as Record<string, Light>)[c.key] = nextLight[st]; }) : undefined} />}
-                          {derived && editing && <span className="auto-chip"><Badge tone="blue">auto</Badge></span>}
+                              ? <TrafficLight colour={st} title={`${r.school} · ${c.label}: ${STATUS_LABEL[st]} — ${c.key === "overall" ? "calculated from the five measures" : "calculated from the finance board"}`} />
+                              : <TrafficLight colour={st} title={`${r.school} · ${c.label}: ${STATUS_LABEL[st]}${can("boards.edit") ? ` — next: ${STATUS_LABEL[nextLight[st]]}` : " — your account has read-only access"}`} onCycle={can("boards.edit") && c.key !== "finance" ? () => cycleStatus(ri, c.key) : undefined} disabled={save.isPending} />}
+                          {derived && editingFields && <span className="auto-chip"><Badge tone="blue">auto</Badge></span>}
                           {c.key === "finance" && r.derived.financeVariance != null && (
                             <span className="auto-chip"><Chip colour={r.derived.financeVariance >= 0 ? "green" : "red"} title={`Finance board (${r.derived.asAt}): surplus ${compact$(r.derived.surplus ?? 0)}`}>{r.derived.financeVariance >= 0 ? "+" : "−"}{compact$(Math.abs(r.derived.financeVariance))} vs budget</Chip></span>
                           )}
-                          {editing ? <input className="cell-note-input" value={note} placeholder="note" onChange={(e) => set((x) => { x.matrix[ri].notes[c.key] = e.target.value; })} />
-                            : note && <span className="cell-note">{note}</span>}
+                          {editingFields ? <input className="cell-note-input" value={note} placeholder="note" onChange={(e) => set((x) => { x.matrix[ri].notes[c.key] = e.target.value; })} />
+                            : note && <span className={`cell-note${showNotes ? "" : " supporting-note"}`}>{note}</span>}
                         </td>
                       );
                     })}
@@ -111,31 +150,17 @@ export function DataboardPage() {
               })}
             </tbody>
           </table>
-          <div className="light-legend"><span><i className="light light-green mini" />On track</span><span><i className="light light-amber mini" />Watch</span><span><i className="light light-red mini" />Action needed</span><span className="legend-note">Overall = worst of the five measures · Finance = from the school's finance board</span></div>
+          <div className="light-legend"><span><i className="light light-green mini" />On track</span><span><i className="light light-amber mini" />Watch</span><span><i className="light light-red mini" />Action needed</span><span className="legend-note">{can("boards.edit") ? "Click Enrolments, Staffing, Buildings or WHS to change status. " : "Read-only access. "}Overall &amp; Finance are calculated.</span></div>
         </Card>
       </section>
 
-      {/* Cash position */}
-      <section className="section">
-        <SectionHead title="SNSW cash position" hint="Consolidated across all schools" />
-        <div className="grid4">
-          {d.cash.map((c, i) => (
-            <div key={i} className={`card cash-cell${c.feature ? " kpi-feature" : ""}`} title={c.derived ? "Sum of the YTD surplus on each school's finance board" : undefined}>
-              <label>{editing && !c.derived ? <TextInput value={c.label} onChange={(v) => set((x) => { x.cash[i].label = v; })} /> : c.label}{c.derived && <Badge tone="blue" title="Calculated from the finance boards">auto</Badge>}</label>
-              <div className="fig">{editing && !c.derived ? <TextInput value={c.value} onChange={(v) => set((x) => { x.cash[i].value = v; })} /> : c.value}</div>
-              <div className="delta">{editing && !c.derived ? <TextInput value={c.delta} onChange={(v) => set((x) => { x.cash[i].delta = v; })} /> : c.delta}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* School snapshots */}
-      <section className="section">
-        <SectionHead title="School snapshots" hint="Budget · buildings · staffing · enrolments" />
+      <section className="section" id="school-snapshots">
+        <SectionHead title="School snapshots" />
         <div className="schools-grid">
           {d.schools.map((s, i) => (
             <div className="card school-card" key={s.unit}>
-              <div className="head" style={{ background: `linear-gradient(120deg, ${s.colour ?? "var(--accent)"}, color-mix(in srgb, ${s.colour ?? "var(--accent)"} 75%, black))` }}>
+              <div className="head">
                 <div><h3>{s.name}</h3><div className="loc">{s.loc}</div></div>
                 <TrafficLight colour={s.overall} size="ov" title={`Overall: ${STATUS_LABEL[s.overall]} (from the at-a-glance row)`} />
               </div>
@@ -143,17 +168,17 @@ export function DataboardPage() {
                 <Metric k="Budget" v={s.budget ? <span className="catcell"><TrafficLight colour={s.finance && s.finance.surplus >= 0 ? "green" : "red"} size="mini" />{s.budget}<Badge tone="blue">auto</Badge></span> : <span className="muted">no finance board</span>} />
                 <Metric k="Variance" v={s.variance ? <><span className={`c-${s.finance && s.finance.variance >= 0 ? "green" : "red"}`}>{s.variance}</span><Badge tone="blue">auto</Badge></> : "—"} />
                 <div className="metric-row col">
-                  <div className="between"><span className="k">Building project</span><span className="v">{editing ? <TextInput value={s.project} onChange={(v) => set((x) => { x.schools[i].project = v; })} /> : s.project}</span></div>
-                  <div className="progress" title={`${s.project}: ${s.progress}% complete`}><i style={{ width: `${Math.max(0, Math.min(100, s.progress))}%` }} /></div>
-                  <div className="between mt4"><span className="k">Progress</span><span className="v">{editing ? <NumberInput value={s.progress} min={0} max={100} onChange={(v) => set((x) => { x.schools[i].progress = v; })} /> : `${s.progress}%`}</span></div>
+                  <div className="between"><span className="k">Building project</span><span className="v">{editingFields ? <TextInput value={s.project} onChange={(v) => set((x) => { x.schools[i].project = v; })} /> : s.project}</span></div>
+                  <ProgressBar label={s.project} value={s.progress} />
+                  <div className="between mt4"><span className="k">Progress</span><span className="v">{editingFields ? <NumberInput value={s.progress} min={0} max={100} onChange={(v) => set((x) => { x.schools[i].progress = v; })} /> : `${s.progress}%`}</span></div>
                 </div>
-                <Metric k="Loan balance" v={editing ? <TextInput value={s.loan} onChange={(v) => set((x) => { x.schools[i].loan = v; })} /> : s.loan} />
-                <Metric k="Payments" v={editing ? <TextInput value={s.payments} onChange={(v) => set((x) => { x.schools[i].payments = v; })} /> : s.payments} />
-                <Metric k="Staffing" v={editing ? <TextInput value={s.staffing} onChange={(v) => set((x) => { x.schools[i].staffing = v; })} /> : s.staffing} />
+                <Metric k="Loan balance" v={editingFields ? <TextInput value={s.loan} onChange={(v) => set((x) => { x.schools[i].loan = v; })} /> : s.loan} />
+                <Metric k="Payments" v={editingFields ? <TextInput value={s.payments} onChange={(v) => set((x) => { x.schools[i].payments = v; })} /> : s.payments} />
+                <Metric k="Staffing" v={editingFields ? <TextInput value={s.staffing} onChange={(v) => set((x) => { x.schools[i].staffing = v; })} /> : s.staffing} />
                 <div className="enrol">
                   <div className="enrol-top"><span className="k">Enrolments</span><span className="enrol-now">{s.enrolTrend.length ? s.enrolTrend[s.enrolTrend.length - 1] : "—"} {enrolDelta(s.enrolTrend)}</span></div>
                   <Sparkline values={s.enrolTrend} label={s.enrolLabel} />
-                  {editing ? <>
+                  {editingFields ? <>
                     <TextInput className="mt6" value={s.enrolTrend.join(", ")} placeholder="e.g. 268, 279, 286, 300" onChange={(v) => set((x) => { x.schools[i].enrolTrend = v.split(",").map((t) => Number(t.trim())).filter((n) => !isNaN(n)); })} />
                     <TextInput className="mt6" value={s.enrolLabel} placeholder="trend label" onChange={(v) => set((x) => { x.schools[i].enrolLabel = v; })} />
                   </> : <div className="enrol-label">{s.enrolLabel}</div>}
@@ -172,20 +197,42 @@ export function DataboardPage() {
       <section className="section">
         <SectionHead title="Risks & WHS" hint="Rating shows current exposure" />
         <div className="grid2">
-          <ListPanel title="Risk register" meta="Owner and status for each open risk" items={d.risks} rated editing={editing} addLabel="+ Add risk" onChange={(items) => set((x) => { x.risks = items; })} />
-          <ListPanel title="WHS items" meta="Work health & safety actions" items={d.whs} rated editing={editing} addLabel="+ Add WHS item" onChange={(items) => set((x) => { x.whs = items; })} />
+          <ListPanel title="Risk register" meta="Owner and status for each open risk" items={d.risks} rated editing={editingFields} addLabel="+ Add risk" onChange={(items) => set((x) => { x.risks = items; })} />
+          <ListPanel title="WHS items" meta="Work health & safety actions" items={d.whs} rated editing={editingFields} addLabel="+ Add WHS item" onChange={(items) => set((x) => { x.whs = items; })} />
         </div>
       </section>
 
       <section className="section">
         <SectionHead title="Connection & celebration" hint="The good news worth sharing" />
-        <ListPanel title="Wins this week" meta="" items={d.celebrate} editing={editing} addLabel="+ Add a win" onChange={(items) => set((x) => { x.celebrate = items; })} />
+        <ListPanel title="Wins this week" meta="" items={d.celebrate} editing={editingFields} addLabel="+ Add a win" onChange={(items) => set((x) => { x.celebrate = items; })} />
       </section>
-    </>
+    </div>
   );
 }
 
-/** The months the finance-derived figures come from, e.g. "June 2026 / April 2026". */
+/** Secondary actions stay out of the reading path until requested. */
+function BoardActions({ onPresent, onEdit, onPrint }: { onPresent: () => void; onEdit?: () => void; onPrint: () => void }) {
+  const menu = useRef<HTMLDetailsElement>(null);
+  const trigger = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const dismiss = (e: MouseEvent) => { if (menu.current && !menu.current.contains(e.target as Node)) menu.current.open = false; };
+    const escape = (e: KeyboardEvent) => { if (e.key === "Escape" && menu.current?.open) { menu.current.open = false; trigger.current?.focus(); } };
+    document.addEventListener("mousedown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("mousedown", dismiss); document.removeEventListener("keydown", escape); };
+  }, []);
+  const run = (action: () => void) => { if (menu.current) menu.current.open = false; action(); };
+  return <details className="board-actions" ref={menu}>
+    <summary ref={trigger} aria-label="Board actions">Actions <span aria-hidden>···</span></summary>
+    <div className="board-actions-pop">
+      <button type="button" onClick={() => run(onPresent)}>Present</button>
+      {onEdit && <button type="button" onClick={() => run(onEdit)}>Edit board</button>}
+      <button type="button" onClick={() => run(onPrint)}>Print</button>
+    </div>
+  </details>;
+}
+
+/** The months the finance-derived figures come from. */
 function financeAsAt(d: Databoard): string | undefined {
   const months = [...new Set(d.schools.map((s) => s.finance?.asAt).filter((x): x is string => !!x))];
   return months.length ? months.join(" / ") : undefined;

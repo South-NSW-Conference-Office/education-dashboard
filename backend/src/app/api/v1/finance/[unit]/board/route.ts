@@ -1,4 +1,5 @@
-import { handle, type Params } from "@/lib/http";
+import { editOrPublish, guarded } from "@/lib/access";
 import { getBoard, putBoard } from "@/controllers/finance";
-export const GET = handle(async (req: Request, ctx: Params<"unit">) => getBoard(req, (await ctx.params).unit));
-export const PUT = handle(async (req: Request, ctx: Params<"unit">) => putBoard(req, (await ctx.params).unit));
+import { type Params } from "@/lib/http";
+export const GET = guarded("boards.read", async (req: Request, ctx: Params<"unit">) => getBoard(req, (await ctx.params).unit));
+export const PUT = guarded(editOrPublish, async (req: Request, ctx: Params<"unit">) => putBoard(req, (await ctx.params).unit));

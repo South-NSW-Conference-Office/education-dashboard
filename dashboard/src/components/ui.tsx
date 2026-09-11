@@ -1,7 +1,8 @@
-/** Small building blocks, all styled from the brand-kit tokens. */
+/** Small building blocks, all styled from the design tokens (the CFO Command Centre system). */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Light } from "@/lib/types";
 import { STATUS_LABEL } from "@/lib/format";
+import { useAccess } from "@/hooks/useAuth";
 
 export const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(" ");
 
@@ -41,9 +42,9 @@ export function Badge({ children, tone = "blue", title, onClick }: { children: R
   return <span className={`badge badge-${tone}`} title={title}>{children}</span>;
 }
 /** Traffic light. A button while editable (click cycles), a labelled span otherwise. */
-export function TrafficLight({ colour, size, onCycle, title }: { colour: Light; size?: "ov" | "mini"; onCycle?: () => void; title?: string }) {
+export function TrafficLight({ colour, size, onCycle, title, disabled }: { colour: Light; size?: "ov" | "mini"; onCycle?: () => void; title?: string; disabled?: boolean }) {
   const label = title ?? STATUS_LABEL[colour];
-  if (onCycle) return <button type="button" className={cx("light", `light-${colour}`, size)} title={`${label} — click to change`} aria-label={label} onClick={onCycle} />;
+  if (onCycle) return <button type="button" className={cx("light", `light-${colour}`, size)} title={`${label} — click to change`} aria-label={`${label} — click to change`} disabled={disabled} onClick={onCycle} />;
   return <span className={cx("light", `light-${colour}`, size)} role="img" aria-label={label} title={label} />;
 }
 export const nextLight: Record<Light, Light> = { green: "amber", amber: "red", red: "green" };
@@ -71,10 +72,13 @@ export function TextArea({ value, onChange, placeholder, rows }: { value: string
   return <textarea value={value ?? ""} placeholder={placeholder} rows={rows} onChange={(e) => onChange(e.target.value)} />;
 }
 
-/** A card's way in and out of editing: a pencil that shows on hover or focus, then keep / cancel. */
+/** A card's way in and out of editing: a pencil that shows on hover or focus, then keep / cancel.
+ *  Renders nothing for a viewer the portal has not granted editing. */
 export function EditTools({ open, label, onEdit, onKeep, onCancel }: {
   open: boolean; label: string; onEdit: () => void; onKeep: () => void; onCancel: () => void;
 }) {
+  const can = useAccess();
+  if (!can("boards.edit") && !open) return null;
   if (!open) return <button type="button" className="rowbtn pencil card-pencil" title={`Edit ${label}`} aria-label={`Edit ${label}`} onClick={onEdit}>✎</button>;
   return (
     <>
@@ -89,14 +93,16 @@ export function EditTools({ open, label, onEdit, onKeep, onCancel }: {
 export function SaveBar({ label, discardLabel = "Discard", saving, onSaveDraft, onPublish, onDiscard }: {
   label: string; discardLabel?: string; saving?: boolean; onSaveDraft: () => void; onPublish: () => void; onDiscard: () => void;
 }) {
+  const can = useAccess();
+  const canPublish = can("boards.publish");
   return (
     <div className="savebar" role="region" aria-label="Unsaved changes">
       <div className="savebar-in">
-        <p className="savebar-count"><b>{label}</b><span>The approved figures stay as they are until you publish.</span></p>
+        <p className="savebar-count"><b>{label}</b><span>{canPublish ? "The approved figures stay as they are until you publish." : "Drafts wait for someone with publish access to approve them."}</span></p>
         <div className="savebar-acts">
           <Button onClick={onDiscard} disabled={saving}>{discardLabel}</Button>
-          <Button onClick={onSaveDraft} disabled={saving}>Save draft</Button>
-          <Button variant="primary" onClick={onPublish} disabled={saving}>Save &amp; publish</Button>
+          <Button variant={canPublish ? "ghost" : "primary"} onClick={onSaveDraft} disabled={saving}>Save draft</Button>
+          {canPublish && <Button variant="primary" onClick={onPublish} disabled={saving}>Save &amp; publish</Button>}
         </div>
       </div>
     </div>
@@ -104,7 +110,7 @@ export function SaveBar({ label, discardLabel = "Discard", saving, onSaveDraft, 
 }
 
 /* ---------- modal ---------- */
-/** A dialog over the page. Solid, like the save bar: one glass layer per level. Escape or the backdrop closes it. */
+/** A dialog over the page, elevated with the system's large shadow. Escape or the backdrop closes it. */
 export function Modal({ title, children, footer, onClose, wide }: { title: ReactNode; children: ReactNode; footer?: ReactNode; onClose: () => void; wide?: boolean }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };

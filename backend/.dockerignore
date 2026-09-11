@@ -1,0 +1,7 @@
+node_modules
+.next
+.env*
+!.env.example
+seed-data/databoard.js
+seed-data/finance-*.js
+tests/fixtures

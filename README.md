@@ -4,10 +4,10 @@ Two major folders:
 
 | Folder | What it is | Run |
 |---|---|---|
-| `dashboard/` | the frontend UI — React 19 + Vite, styled from `brand-kit.html`, see `dashboard/README.md` | `cd dashboard && npm install && npm run dev` → <http://localhost:5173> |
+| `dashboard/` | the frontend UI — React 19 + Vite, styled to the CFO Command Centre system (`DESIGN.md`), see `dashboard/README.md` | `cd dashboard && npm install && npm run dev` → <http://localhost:5173> |
 | `backend/` | Next.js + MongoDB API (MVC with a service layer), see `backend/README.md` | `cd backend && npm install && npm run dev` → <http://localhost:3000> |
 
-Supporting material sits in `docs/`: the backend plan and schema (`docs/backend/`), the original stand-alone HTML boards (`docs/source-boards/`), the phase-1 static consolidation (`docs/legacy-static-dashboard/`, superseded by the React app) and the initial brief. `brand-kit.html` at the root is the design reference.
+Supporting material sits in `docs/`: the backend plan and schema (`docs/backend/`), the original stand-alone HTML boards (`docs/source-boards/`), the phase-1 static consolidation (`docs/legacy-static-dashboard/`, superseded by the React app) and the initial brief. `DESIGN.md` and `PRODUCT.md` at the root are the design reference (the CFO Command Centre system); `brand-kit.html` documents the retired v1.1 glass/blue look.
 
 ## School data is not in this repository
 
@@ -44,4 +44,21 @@ Only raw data is typed: line items on a school's Details tab, loans and leases, 
 
 ## Backend
 
-Built in `backend/` (Next.js route handlers, Mongoose on local MongoDB, no users yet). It stores line items as versioned facts and calculates everything else on the server; see `backend/README.md` and `docs/backend/README.md`. Next steps: port `dashboard/` to React inside the same project and read/write through the API; then the MYOB, Synergetic and Hubworks feeds via the import pipeline.
+Built in `backend/` (Next.js route handlers, Mongoose on local MongoDB). It stores line items as versioned facts and calculates everything else on the server; see `backend/README.md` and `docs/backend/README.md`. Sign-in and authorization come from the Adventist Portal (`backend/README.md`, "Portal SSO & access control").
+
+## Deployment
+
+The fleet's standard split, driven by `.github/workflows/deploy.yml` on every
+push to `main` (mirroring login-adventistbot's proven pipeline):
+
+- **backend → morpheus** (linux/arm64, tailnet-only on `:4200`): built natively
+  on a GitHub-hosted ARM runner, pushed to GHCR, pulled and restarted by this
+  repo's self-hosted morpheus runner. Stack lives at
+  `/home/morpheus/education-dashboard` (compose + `.env.backend`, see
+  `deploy/.env.backend.example`). Mongo is morpheus's host mongod, database
+  `education_dashboard`, dedicated same-named user.
+- **frontend → snswserver** (linux/amd64, public): nginx serving the Vite build
+  and proxying `/api` to the backend over Tailscale, behind the box's shared
+  nginx-proxy + acme-companion at <https://education.adventist.bot>. Stack at
+  `/opt/education-dashboard`; the release script verifies the running image
+  carries the run's tag before going green.

@@ -1,3 +1,4 @@
-import { handle, type Params } from "@/lib/http";
+import { guarded } from "@/lib/access";
 import { postPublish } from "@/controllers/databoard";
-export const POST = handle(async (req: Request, ctx: Params<"weekEnding">) => postPublish(req, decodeURIComponent((await ctx.params).weekEnding)));
+import { type Params } from "@/lib/http";
+export const POST = guarded("boards.publish", async (req: Request, ctx: Params<"weekEnding">) => postPublish(req, decodeURIComponent((await ctx.params).weekEnding)));
