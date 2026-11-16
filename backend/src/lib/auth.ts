@@ -40,5 +40,14 @@ export const auth = betterAuth({
     // the IdP would fight over one better-auth.session_token (and the OAuth
     // state cookies), which the SSO handshake cannot survive.
     cookiePrefix: "snsweducation",
+
+    // Rate limits key on the client IP. Requests arrive via snswserver's shared
+    // nginx-proxy, then the frontend nginx, so X-Forwarded-For is
+    // "<client>, <nginx-proxy's Docker IP>". Without a trusted range Better
+    // Auth rejects multi-hop headers and puts every user in ONE shared bucket.
+    // Trusting the Docker range lets it peel that hop off and find the client.
+    ipAddress: {
+      trustedProxies: ["172.16.0.0/12"],
+    },
   },
 });
