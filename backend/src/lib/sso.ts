@@ -50,6 +50,9 @@ export function enterpriseSsoPlugin() {
         discoveryUrl: requiredEnv("AUTH_SSO_DISCOVERY_URL"),
         scopes: ["openid", "email", "profile"],
         pkce: true,
+        // The portal registers every client as client_secret_basic and rejects
+        // the plugin's default (secret in the POST body) with invalid_client.
+        authentication: "basic",
         overrideUserInfo: true,
         // The IdP asserts email_verified: false for every account (it never
         // required confirmation). The IdP owns these identities; its word on
