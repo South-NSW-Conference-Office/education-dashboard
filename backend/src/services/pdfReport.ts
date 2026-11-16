@@ -152,9 +152,19 @@ export function joinLabel(parts: Array<{ s: string; x: number; w: number }>, wra
 
 const isCodeItem = (it: TextItem, page: PageText) => /^\d{4}$/.test(it.s) && it.x < page.width * 0.12;
 
+/**
+ * Some reports (from October 2026) number page 1's rows in a "Line" column before the label:
+ * "2 Student tuition …". Drop that number so the label leads the row again.
+ */
+function dropLineNumber(l: Line, labelLimit: number): Line {
+  const [first, second] = l.items;
+  if (!first || !second || !/^\d{1,3}$/.test(first.s) || first.x >= labelLimit || !isWord(second)) return l;
+  return { ...l, items: l.items.slice(1) };
+}
+
 function parseSummary(page: PageText, out: ParsedReport): void {
-  const lines = toLines(page);
   const labelLimit = page.width * 0.12;
+  const lines = toLines(page).map((l) => dropLineNumber(l, labelLimit));
   const isCategoryLine = (l: Line) => isWord(l.items[0]) && l.items[0].x < labelLimit && l.items.filter(isAmount).length >= 3;
   const catLines = lines.filter(isCategoryLine);
   if (!catLines.length) { out.errors.push("Page 1 has no category rows (expected Student tuition, Government grants, …)"); return; }
@@ -195,7 +205,12 @@ function parseDebtorsChart(page: PageText, out: ParsedReport): void {
   const inRegion = (x: number, y: number) => x >= left && x < rightBound && y > bottom && y < top;
 
   // Axis labels are right-aligned on one edge; the category labels under the axis ("1", "2") are not.
-  const candidates = page.items.filter((i) => inRegion(i.x, i.y) && i.x < title.x && parseAmount(i.s) !== null).map((i) => ({ y: i.y, v: parseAmount(i.s)!, r: right(i) }));
+  // Row numbers in a "Line" column beside the chart are right-aligned too, so they are left out:
+  // anything ending left of where the "Description" header starts, when the page has a Line column.
+  const lineHeader = page.items.find((i) => /^line$/i.test(i.s) && i.x < page.width * 0.12);
+  const descHeader = lineHeader && page.items.find((i) => /^description$/i.test(i.s) && Math.abs(i.y - lineHeader.y) < 2);
+  const isRowNumber = (i: TextItem) => !!descHeader && /^\d{1,3}$/.test(i.s) && right(i) <= descHeader.x;
+  const candidates = page.items.filter((i) => inRegion(i.x, i.y) && i.x < title.x && parseAmount(i.s) !== null && !isRowNumber(i)).map((i) => ({ y: i.y, v: parseAmount(i.s)!, r: right(i) }));
   const edges = candidates.map((c) => c.r).sort((a, b) => a - b);
   const median = edges[Math.floor(edges.length / 2)] ?? 0;
   const axis = candidates.filter((c) => Math.abs(c.r - median) <= 3);
@@ -331,8 +346,10 @@ export function parseOperatingReport(pages: PageText[]): ParsedReport {
       if (out.headerLines.length > 8) break;
     }
   }
+  // "… (SNSW) Ltd - Narromine Christian School"; printed-to-PDF reports drop the hyphen.
   const title = out.headerLines.find((t) => / - /.test(t));
   if (title) out.unitName = title.split(" - ").pop()!.trim();
+  else out.unitName = out.headerLines.map((t) => /\bLtd\s+(\S.*)$/i.exec(t)?.[1].trim()).find(Boolean) ?? null;
   if (!out.periodLabel) out.errors.push('Could not find the reporting period ("As at August 2026") on the report');
 
   if (summaryPage) parseSummary(summaryPage, out); else out.errors.push("Could not find the Financial Performance summary page");

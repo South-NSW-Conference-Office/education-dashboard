@@ -68,27 +68,39 @@ function collectRects(fnArray: number[], argsArray: unknown[][], OPS: Record<str
 
 export async function extractPdfText(bytes: Uint8Array): Promise<PageText[]> {
   if (!isPdf(bytes)) throw badRequest("The file is not a PDF");
-  const { getDocument, OPS } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const { getDocument, OPS, Util } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const pdf = await getDocument({ data: bytes, useSystemFonts: true, disableFontFace: true, isEvalSupported: false, verbosity: 0 }).promise;
   try {
     const pages: PageText[] = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
+      // Positions are given as the page is SEEN, not as stored: a report printed to PDF (Adobe
+      // PDF printer) stores its landscape pages as portrait with /Rotate 90, and the parser needs
+      // the rows running left to right. The viewport maps stored coordinates to the seen page
+      // (origin top-left); flip y back to the bottom-left origin the parser works in.
+      const vp = page.getViewport({ scale: 1 });
+      const seen = (x: number, y: number): [number, number] => {
+        const [X, Y] = Util.applyTransform([x, y], vp.transform);
+        return [X, vp.height - Y];
+      };
       const content = await page.getTextContent();
       const items: TextItem[] = [];
       for (const it of content.items) {
         if (!("str" in it)) continue;
         const s = it.str.replace(/ /g, " ").replace(/\s+/g, " ").trim();
         if (!s || !MEANINGFUL.test(s)) continue;
-        items.push({ x: it.transform[4], y: it.transform[5], w: it.width, s });
+        const [x, y] = seen(it.transform[4], it.transform[5]);
+        items.push({ x, y, w: it.width, s });
       }
       let rects: Rect[] = [];
       try {
         const ops = await page.getOperatorList();
-        rects = collectRects(ops.fnArray, ops.argsArray as unknown[][], OPS as unknown as Record<string, number>);
+        rects = collectRects(ops.fnArray, ops.argsArray as unknown[][], OPS as unknown as Record<string, number>).map((r) => {
+          const [ax, ay] = seen(r.x, r.y), [bx, by] = seen(r.x + r.w, r.y + r.h);
+          return { x: Math.min(ax, bx), y: Math.min(ay, by), w: Math.abs(bx - ax), h: Math.abs(by - ay), fill: r.fill };
+        });
       } catch { /* charts are a bonus; text is what matters */ }
-      const [x0, y0, x1, y1] = page.view;
-      pages.push({ page: p, width: x1 - x0, height: y1 - y0, items, rects });
+      pages.push({ page: p, width: vp.width, height: vp.height, items, rects });
       page.cleanup();
     }
     return pages;
