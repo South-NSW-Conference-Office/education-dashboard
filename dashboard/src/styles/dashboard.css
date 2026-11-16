@@ -124,7 +124,7 @@
 @container page (min-width:1250px){.education-board .schools-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:600px){
  .education-board{gap:20px}.education-board .ph-title h1{font-size:27px}
- .education-board .ph-pills{gap:14px}.board-pulse{gap:12px}.board-pulse a{width:100%;margin:0}
+ .education-board .ph-pills{gap:14px}.education-board .pill-note{max-width:none}.board-pulse{gap:12px}.board-pulse a{width:100%;margin:0}
  .education-board .cash-cell{border-right:0;border-bottom:1px solid var(--line);padding:18px}
  .education-board .cash-cell:last-child{border-bottom:0}.presenting .content{padding:20px 14px}
 }

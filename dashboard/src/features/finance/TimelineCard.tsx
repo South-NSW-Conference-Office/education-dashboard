@@ -6,6 +6,7 @@
 import { Link } from "react-router-dom";
 import { PairedBars } from "@/components/charts";
 import { Card, Dot, Empty, ErrorState, Loading } from "@/components/ui";
+import { PreliminaryTag, sourceNoteText, SourceLine } from "@/components/FinanceSource";
 import { useTimeline } from "@/hooks/queries";
 import { usePeriod } from "@/hooks/usePeriod";
 import { isSpan, short } from "@/lib/period";
@@ -25,17 +26,20 @@ export function TimelineCard({ unit }: { unit?: string }) {
       <table className="ftable stable timeline">
         <thead><tr><th>Month</th>{!unit && <th>Boards</th>}<th>Income YTD</th><th>Spending YTD</th><th>Surplus / (deficit)</th><th>vs budget</th><th>Margin</th></tr></thead>
         <tbody>
-          {rows.map((r) => (
+          {rows.map((r) => {
+            const source = sourceNoteText(r.units.map((u) => ({ sourceLabel: u.sourceLabel })));
+            return (
             <tr key={r.label}>
-              <td><b>{r.label}</b></td>
-              {!unit && <td><span className="tl-units">{r.units.map((u) => <Link key={u.unit} className="tag" to={`/finance/${u.unit}`} title={`${u.name}: surplus ${fmt$(u.surplus.actual)} (${fmt(u.surVar)} vs budget)`}><Dot colour={u.finance} />{u.short}</Link>)}</span></td>}
+              <td><b>{r.label}</b>{source && <SourceLine text={source} />}</td>
+              {!unit && <td><span className="tl-units">{r.units.map((u) => <Link key={u.unit} className="tag" to={`/finance/${u.unit}`} title={[`${u.name}: surplus ${fmt$(u.surplus.actual)} (${fmt(u.surVar)} vs budget)`, u.sourceLabel].filter(Boolean).join(". ")}><Dot colour={u.finance} />{u.short}{u.sourceLabel && <PreliminaryTag title={u.sourceLabel} />}</Link>)}</span></td>}
               <td>{fmt$(r.totals.income.actual)}</td>
               <td>{fmt$(r.totals.expenditure.actual)}</td>
               <td>{fmt$(r.totals.surplus.actual)}</td>
               <td className={`strong c-${r.totals.surVar >= 0 ? "green" : "red"}`}>{fmt(r.totals.surVar)}</td>
               <td>{pct(r.totals.marginPct)}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
       <h3 className="tl-sub">Surplus / (deficit) by month — actual vs budget</h3>

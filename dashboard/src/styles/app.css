@@ -113,6 +113,8 @@ code,.mono,.code{font-family:var(--font-mono)}
 .banner-red{border-left:3px solid var(--red);color:var(--red-text);background:var(--red-soft)}
 .badge{display:inline-block;font-size:.62rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;padding:2px 8px;border-radius:var(--radius-pill);vertical-align:middle;margin-left:6px}
 .badge-amber{background:var(--amber-soft);color:var(--amber-text)} .badge-blue{background:var(--accent-soft);color:var(--accent)} .badge-muted{background:var(--neutral-soft);color:var(--muted)}
+/* Preliminary is a source, not sample data: the same tag shape as a badge, in the neutral ink rather than amber. */
+.badge-preliminary{background:var(--neutral-soft);color:var(--neutral);text-transform:none;letter-spacing:.01em}
 .badge-btn{border:1px solid transparent;cursor:pointer;font-family:inherit;line-height:1.5}
 .badge-btn:hover,.badge-btn:focus-visible{border-color:currentColor;text-decoration:underline;outline:none}
 .toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:60}
@@ -380,6 +382,8 @@ button.rating{cursor:pointer}
   .topbar{gap:10px;padding:8px 14px}
   .ph-title h1{font-size:1.4rem}
   .pill{min-width:0;flex:1 1 auto}
+  .pill-note,.timeline td .source-note{max-width:none}
+  .myob-results li{padding:10px}
   .ph-actions{width:100%}
   .ph-actions .btn{flex:1;justify-content:center}
   .tab{padding:10px 12px}
@@ -412,6 +416,14 @@ button.rating{cursor:pointer}
 .pill-btn .chev{font-size:.7rem;color:var(--faint);margin-left:2px}
 .pill-btn.open .chev{color:var(--accent)}
 .pill-note{display:block;font-size:.68rem;font-weight:400;color:var(--muted);margin-top:1px}
+.source-note,.finance-source{overflow-wrap:anywhere;text-transform:none;letter-spacing:0;font-weight:400}
+.timeline td .source-note{display:block;margin-top:4px;max-width:320px;color:var(--muted);font-size:.7rem;white-space:normal;line-height:1.45}
+.myob-results{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.myob-results li{background:var(--surface-2);border-radius:9px;padding:10px 12px}
+.myob-results p{margin:4px 0 0}
+.myob-scroll{max-height:360px}
+.myob-scroll .ftable{min-width:520px}
+.myob-scroll td .hint{display:block;margin-top:2px}
 .period.has-extra .pill-btn{padding-right:34px}
 .period-extra{position:absolute;right:6px;top:50%;transform:translateY(-50%)}
 .period:hover .period-extra .pill-pencil,.period:focus-within .period-extra .pill-pencil{opacity:1}

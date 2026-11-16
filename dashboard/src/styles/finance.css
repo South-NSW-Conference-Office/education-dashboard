@@ -119,6 +119,7 @@
  .finance-workspace{gap:24px;padding-top:20px}
  .finance-workspace .ph-title h1{font-size:25px}
  .finance-workspace .ph-pills{gap:20px;flex:1}
+ .finance-workspace .pill-note{max-width:none}
  .finance-workspace .ph-actions{width:auto;margin-left:auto}
  .finance-workspace .card{padding:20px 16px}
  .finance-workspace .grid4{grid-template-columns:1fr}

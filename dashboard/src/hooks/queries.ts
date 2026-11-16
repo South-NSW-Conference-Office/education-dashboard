@@ -18,6 +18,7 @@ export const keys = {
   versions: (unit: string) => ["versions", unit] as const,
   timeline: (period: string, unit?: string) => ["timeline", period, unit ?? "*"] as const,
   databoard: (period: string) => ["databoard", period] as const,
+  myob: ["myob-sync"] as const,
 };
 
 export const useUnits = () => useQuery({ queryKey: keys.units, queryFn: api.units, staleTime: Infinity });
@@ -75,6 +76,22 @@ export function usePublishImport(unit: string) {
   const invalidate = useInvalidateFinance();
   return useMutation({ mutationFn: ({ id, approve }: { id: string; approve: boolean }) => api.publishImport(id, approve), onSuccess: () => invalidate(unit) });
 }
+/** Manual MYOB sync. Any completed run refreshes the boards and the reconciliation log. */
+export function useSyncFromMyob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body?: { period?: string; unit?: string }) => api.syncFromMyob(body),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ["board"] }), qc.invalidateQueries({ queryKey: ["overview"] }),
+      qc.invalidateQueries({ queryKey: ["versions"] }), qc.invalidateQueries({ queryKey: ["summary"] }),
+      qc.invalidateQueries({ queryKey: ["timeline"] }), qc.invalidateQueries({ queryKey: keys.periods }),
+      qc.invalidateQueries({ queryKey: ["databoard"] }), qc.invalidateQueries({ queryKey: keys.myob }),
+    ]),
+  });
+}
+/** Reconciliation log. Only mounted for someone who can import, so readers do not call it. */
+export const useMyobSync = () => useQuery({ queryKey: keys.myob, queryFn: api.myobSync, staleTime: 15_000 });
+
 export function useSaveDataboard() {
   const qc = useQueryClient();
   return useMutation({

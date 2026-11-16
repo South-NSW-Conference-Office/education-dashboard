@@ -5,13 +5,16 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
-import { useBoard, useOverview, useSaveBoard, useUnits, useVersions } from "@/hooks/queries";
+import { useBoard, useOverview, useSaveBoard, useSyncFromMyob, useUnits, useVersions } from "@/hooks/queries";
 import { PageHeader, Pill } from "@/components/layout/PageHeader";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { Badge, Banner, Button, Card, ErrorState, Loading, SaveBar, useToast } from "@/components/ui";
 import { OverviewTab } from "@/features/finance/OverviewTab";
 import { DetailsTab } from "@/features/finance/DetailsTab";
 import { ImportPdfDialog } from "@/features/finance/ImportPdfDialog";
+import { MyobReconciliationPanel } from "@/features/finance/MyobReconciliationPanel";
+import { MyobSyncDialog } from "@/features/finance/MyobSyncDialog";
+import { PreliminaryTag, SourceLine } from "@/components/FinanceSource";
 import { TimelineCard } from "@/features/finance/TimelineCard";
 import { usePeriod } from "@/hooks/usePeriod";
 import { useAccess } from "@/hooks/useAuth";
@@ -38,7 +41,9 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const [periodEdit, setPeriodEdit] = useState<string | null>(null);
   // An operating-report PDF chosen for upload; the dialog reads it and offers draft or publish.
   const [pdf, setPdf] = useState<File | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const sync = useSyncFromMyob();
   // When editing began: only a draft fetched after that is taken, never a stale cached copy.
   const [openedAt, setOpenedAt] = useState(0);
 
@@ -51,7 +56,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const save = useSaveBoard(unit);
   const toast = useToast();
 
-  useEffect(() => { setEditing(false); setDraft(null); setBaseline(null); setPeriodEdit(null); setPdf(null); }, [unit, selection]);
+  useEffect(() => { setEditing(false); setDraft(null); setBaseline(null); setPeriodEdit(null); setPdf(null); setSyncOpen(false); }, [unit, selection]);
   useEffect(() => {
     if (editing && draftBoard.data && !draft && draftBoard.dataUpdatedAt >= openedAt) { setDraft(clone(draftBoard.data)); setBaseline(clone(draftBoard.data)); }
   }, [editing, draftBoard.data, draftBoard.dataUpdatedAt, draft, openedAt]);
@@ -123,17 +128,19 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
                 </span>
               </> : <>
                 {board.meta.asAt}
+                {board.meta.sourceLabel && <PreliminaryTag title={board.meta.sourceLabel} />}
                 <button type="button" className="rowbtn pencil pill-pencil" title="Edit the reporting period" aria-label="Edit the reporting period"
                   onClick={() => setPeriodEdit(board.meta.asAt)}>✎</button>
               </>}
             </Pill>
           ) : (
-            <PeriodPicker note={selection.kind !== "month" ? board.meta.asAt : undefined}
+            <PeriodPicker note={board.meta.sourceLabel ? <SourceLine text={board.meta.sourceLabel} /> : (selection.kind !== "month" ? board.meta.asAt : undefined)}
               extra={can("boards.edit") ? <button type="button" className="rowbtn pencil pill-pencil" title="Open a draft and change its reporting period" aria-label="Open a draft and change its reporting period"
                 onClick={() => { onBeginEdit(); setPeriodEdit(board.meta.asAt); }}>✎</button> : undefined} />
           )}
-          <Pill label="Version" title={board.meta.approvedAt ? `Approved ${when(board.meta.approvedAt)}` : `Last saved ${when(board.meta.lastSaved)}`}>
+          <Pill label="Version" title={[board.meta.sourceLabel, board.meta.approvedAt ? `Approved ${when(board.meta.approvedAt)}` : `Last saved ${when(board.meta.lastSaved)}`].filter(Boolean).join(" · ")}>
             v{board.meta.version} · {status === "APPROVED" ? "approved" : status.toLowerCase().replace("_", " ")}
+            {board.meta.sourceLabel && <PreliminaryTag title={board.meta.sourceLabel} />}
             {!editing && openDraft && can("boards.edit") && <> <Badge tone="amber" title={`Open draft v${openDraft.versionNo}${openDraft.period ? ` (${openDraft.period})` : ""} to review, edit and publish it`} onClick={onBeginEdit}>draft v{openDraft.versionNo}{openDraft.period ? ` · ${openDraft.period}` : ""} · open ›</Badge></>}
             {dirty && <> <Badge tone="amber" title="Edited but not saved">unsaved</Badge></>}
           </Pill>
@@ -141,7 +148,10 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
         actions={<>
           {presenting ? <Button onClick={() => setPresenting(false)}>Exit presentation</Button> : <BoardMenu items={[
             { label: "Present", action: () => setPresenting(true) },
-            ...(can("imports.write") ? [{ label: "Upload report PDF", action: () => fileInput.current?.click(), disabled: editing }] : []),
+            ...(can("imports.write") ? [
+              { label: "Upload report PDF", action: () => fileInput.current?.click(), disabled: editing },
+              { label: "Sync from MYOB", action: () => { if (!sync.isPending) sync.mutate({}); setSyncOpen(true); }, disabled: editing || sync.isPending },
+            ] : []),
             { label: "Print", action: () => window.print() },
           ]} />}
           {can("imports.write") && <>
@@ -165,6 +175,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
         ? <OverviewTab unit={unit} board={board} overview={overview.data} editable={editable} onChange={(b) => setDraft(b)} onBeginEdit={onBeginEdit} />
         : <DetailsTab board={board} editable={editable} hideZeros={hideZeros} onToggleZeros={() => setHideZeros((h) => !h)} onChange={(b) => setDraft(b)} onBeginEdit={onBeginEdit} />}
       {tab === "overview" && !editing && <TimelineCard unit={unit} />}
+      {!editing && !presenting && can("imports.write") && tab === "overview" && <MyobReconciliationPanel unit={unit} />}
 
       {/* Also shown for an unchanged open draft, which still needs a way to be published. */}
       {editable && (dirty || status !== "APPROVED") && (
@@ -177,6 +188,10 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
       {pdf && (
         <ImportPdfDialog unit={unit} file={pdf} current={approved.data ?? board} versions={versions.data} onClose={() => setPdf(null)}
           onDone={(message, warning, openDraft) => { toast(message); if (warning) toast(warning, "warn"); setPdf(null); endSession(); if (openDraft) onBeginEdit(); }} />
+      )}
+      {syncOpen && (
+        <MyobSyncDialog pending={sync.isPending} error={sync.isError ? sync.error : null} result={sync.isError ? undefined : sync.data}
+          units={units.data ?? []} onClose={() => setSyncOpen(false)} />
       )}
 
       <div className="foot">Adventist Education South New South Wales · Figures are indicative — the operating statement remains the authoritative record.</div>

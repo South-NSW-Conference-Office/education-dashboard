@@ -16,6 +16,8 @@ export interface ReconItem { checkCode: string; label: string; field: string; li
 export interface BoardMeta {
   unit: string; unitName: string; shortName: string; asAt: string; version: number; versionId: string;
   status: "DRAFT" | "IN_REVIEW" | "APPROVED" | "SUPERSEDED" | "REJECTED"; placeholder: boolean;
+  /** Set on a preliminary MYOB cut, e.g. "From MYOB, preliminary - as at October 2026". Absent for an approved operating-report PDF. */
+  sourceLabel?: string | null; preliminary?: boolean; source?: string | null;
   lastSaved: string | null; approvedAt: string | null; generatedAt: string; draft?: boolean;
 }
 export interface Board {
@@ -65,14 +67,14 @@ export interface Overview {
 export interface Summary {
   context: { periods: string[]; mixedPeriods: boolean; includesPlaceholder: boolean; boards: number; generatedAt: string };
   totals: { income: Amounts; expenditure: Amounts; surplus: Amounts; incVar: number; expVar: number; surVar: number; marginPct: number };
-  schools: Array<{ unit: string; name: string; short: string; asAt: string; placeholder: boolean; income: Amounts; spending: Amounts; surplus: Amounts; surVar: number; marginPct: number; finance: Light }>;
+  schools: Array<{ unit: string; name: string; short: string; asAt: string; placeholder: boolean; preliminary?: boolean; sourceLabel?: string | null; income: Amounts; spending: Amounts; surplus: Amounts; surVar: number; marginPct: number; finance: Light }>;
   needsAttention: Array<{ unit: string; short: string; label: string; unfavourable: number; colour: Light }>;
 }
 
 export interface TimelineMonth {
   label: string; endsOn: string; boards: number; includesPlaceholder: boolean;
   totals: Summary["totals"];
-  units: Array<{ unit: string; name: string; short: string; placeholder: boolean; income: Amounts; spending: Amounts; surplus: Amounts; surVar: number; marginPct: number; finance: Light }>;
+  units: Array<{ unit: string; name: string; short: string; placeholder: boolean; preliminary?: boolean; sourceLabel?: string | null; income: Amounts; spending: Amounts; surplus: Amounts; surVar: number; marginPct: number; finance: Light }>;
 }
 export interface Timeline { periods: TimelineMonth[] }
 
@@ -85,7 +87,7 @@ export interface MatrixRow {
 export interface CashItem { kind: string; label: string; value: string; delta: string; feature?: boolean; derived?: boolean }
 export interface SchoolCard {
   unit: string; name: string; loc: string; colour: string | null; overall: Light; budget: string; variance: string;
-  finance: { asAt: string; placeholder: boolean; surplus: number; surplusBudget: number; variance: number } | null;
+  finance: { asAt: string; placeholder: boolean; sourceLabel?: string | null; surplus: number; surplusBudget: number; variance: number } | null;
   project: string; progress: number; loan: string; payments: string; staffing: string; enrolments: string; enrolLabel: string; enrolTrend: number[];
 }
 export interface ListItem { rating?: Light; main: string; meta: string }
@@ -93,4 +95,38 @@ export interface Databoard {
   weekEnding: string; status: "DRAFT" | "PUBLISHED"; lastUpdated?: string;
   cash: CashItem[]; matrix: MatrixRow[]; schools: SchoolCard[]; risks: ListItem[]; whs: ListItem[]; celebrate: ListItem[];
   derived: { operatingResult: { surplus: number; budget: number; boards: number }; rule: string };
+}
+
+/** One report line on the MYOB reconciliation log: ledger YTD against the operating-report YTD. */
+export interface MyobReconLine {
+  accountCode: string; label: string; group: string; section: "INCOME" | "EXPENDITURE";
+  myobYtd: number | null; pdfYtd: number | null; difference: number | null; note: string | null; rawCodes: string[];
+}
+export interface MyobUnmappedAccount { accountCode: string; name: string; type: string | null; myobYtd: number; rawCodes: string[] }
+export interface MyobReconciliation {
+  lines: MyobReconLine[];
+  unmapped: MyobUnmappedAccount[];
+  excluded: Array<MyobUnmappedAccount & { reason: string }>;
+  surplus: { pdf: number; myobOnReportLines: number; differenceOnReportLines: number; unmappedIncome: number; unmappedExpense: number; glSurplusApprox: number };
+}
+/** One school on a sync. `saved` means a preliminary month was loaded; `sourceLabel` names that month. */
+export interface MyobUnitSync {
+  unit: string; branch: string | null; status: "saved" | "skipped" | "failed"; message: string;
+  sourceLabel: string | null; pdfRemainsAuthoritative: boolean; versionId: string | null;
+  comparisonNote: string | null; reconciliation: MyobReconciliation | null;
+}
+export interface MyobSyncResult {
+  status: "disabled" | "not_configured" | "ok" | "partial" | "failed";
+  message: string; period: string | null; fromPeriod: string | null; toPeriod: string | null;
+  ledger: string | null; budgetLedger: string | null; budgetSource: "myob" | "pdf" | null;
+  excludedBranches: string[]; unassignedBranches: string[]; units: MyobUnitSync[];
+}
+export interface MyobSyncLog {
+  enabled: boolean; configured: boolean; schedule: string; label: string;
+  lastRun: {
+    id: string; trigger: string; status: string; message: string; period: string | null;
+    ledger: string | null; budgetLedger: string | null; budgetSource: "myob" | "pdf" | null;
+    excludedBranches: string[]; unassignedBranches: string[]; units: MyobUnitSync[];
+    startedAt: string | null; finishedAt: string | null; createdAt: string | null;
+  } | null;
 }
