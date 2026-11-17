@@ -9,6 +9,7 @@ import { PageHeader, Pill } from "@/components/layout/PageHeader";
 import { ProgressBar, Sparkline, enrolDelta } from "@/components/charts";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { Badge, Button, Card, Chip, Empty, ErrorState, Loading, NumberInput, SaveBar, SectionHead, TextInput, TrafficLight, nextLight, useToast } from "@/components/ui";
+import { PreliminaryTag, sourceNoteText, SourceLine } from "@/components/FinanceSource";
 import { usePeriod } from "@/hooks/usePeriod";
 import { useAccess } from "@/hooks/useAuth";
 import { ApiError } from "@/lib/api";
@@ -86,7 +87,7 @@ export function DataboardPage() {
       <PageHeader eyebrow="South New South Wales · Education" title="Weekly overview"
         pills={<>
           <Pill label="Week ending">{editingFields && draft ? <input className="pill-input" value={draft.weekEnding} onChange={(e) => set((x) => { x.weekEnding = e.target.value; })} /> : d.weekEnding}<span className="board-publication" title={d.lastUpdated ? `Updated ${when(d.lastUpdated)}` : undefined}>· {d.status === "PUBLISHED" ? "Published" : "Draft"}</span></Pill>
-          <PeriodPicker label="Finance as at" disabled={editing} note={selection.kind !== "month" ? financeAsAt(d) : undefined} />
+          <PeriodPicker label="Finance as at" disabled={editing} note={financeNote(d, selection.kind !== "month")} />
         </>}
         actions={presenting ? <Button onClick={() => setPresenting(false)}>Exit presentation</Button> : !editing && <BoardActions
           onPresent={() => setPresenting(true)}
@@ -138,7 +139,7 @@ export function DataboardPage() {
                               : <TrafficLight colour={st} title={`${r.school} · ${c.label}: ${STATUS_LABEL[st]}${can("boards.edit") ? ` — next: ${STATUS_LABEL[nextLight[st]]}` : " — your account has read-only access"}`} onCycle={can("boards.edit") && c.key !== "finance" ? () => cycleStatus(ri, c.key) : undefined} disabled={save.isPending} />}
                           {derived && editingFields && <span className="auto-chip"><Badge tone="blue">auto</Badge></span>}
                           {c.key === "finance" && r.derived.financeVariance != null && (
-                            <span className="auto-chip"><Chip colour={r.derived.financeVariance >= 0 ? "green" : "red"} title={`Finance board (${r.derived.asAt}): surplus ${compact$(r.derived.surplus ?? 0)}`}>{r.derived.financeVariance >= 0 ? "+" : "−"}{compact$(Math.abs(r.derived.financeVariance))} vs budget</Chip></span>
+                            <span className="auto-chip"><Chip colour={r.derived.financeVariance >= 0 ? "green" : "red"} title={financeChipTitle(d, r)}>{r.derived.financeVariance >= 0 ? "+" : "−"}{compact$(Math.abs(r.derived.financeVariance))} vs budget</Chip>{financeSource(d, r.unit) && <PreliminaryTag title={financeSource(d, r.unit)} />}</span>
                           )}
                           {editingFields ? <input className="cell-note-input" value={note} placeholder="note" onChange={(e) => set((x) => { x.matrix[ri].notes[c.key] = e.target.value; })} />
                             : note && <span className={`cell-note${showNotes ? "" : " supporting-note"}`}>{note}</span>}
@@ -185,7 +186,7 @@ export function DataboardPage() {
                 </div>
               </div>
               <div className="foot-row">
-                <span className="k">From the finance board{s.finance ? ` · as at ${s.finance.asAt}` : ""}{s.finance?.placeholder && <> <Badge tone="amber">placeholder</Badge></>}</span>
+                <span className="k finance-source">From the finance board{s.finance?.sourceLabel ? <> · <SourceLine text={s.finance.sourceLabel} /></> : s.finance ? ` · as at ${s.finance.asAt}` : ""}{s.finance?.placeholder && <> <Badge tone="amber">placeholder</Badge></>}</span>
                 <Link className="btn btn-ghost btn-small" to={`/finance/${s.unit}`}>Open finance board →</Link>
               </div>
             </div>
@@ -232,10 +233,22 @@ function BoardActions({ onPresent, onEdit, onPrint }: { onPresent: () => void; o
   </details>;
 }
 
-/** The months the finance-derived figures come from. */
-function financeAsAt(d: Databoard): string | undefined {
+/** The months the finance-derived figures come from, unless a board names its own source. */
+function financeNote(d: Databoard, span: boolean): React.ReactNode | undefined {
+  const source = sourceNoteText(d.schools.map((s) => ({ sourceLabel: s.finance?.sourceLabel, asAt: s.finance?.asAt })));
+  if (source) return <SourceLine text={source} />;
+  if (!span) return undefined;
   const months = [...new Set(d.schools.map((s) => s.finance?.asAt).filter((x): x is string => !!x))];
   return months.length ? months.join(" / ") : undefined;
+}
+
+function financeSource(d: Databoard, unit: string): string | undefined {
+  return d.schools.find((s) => s.unit === unit)?.finance?.sourceLabel ?? undefined;
+}
+
+function financeChipTitle(d: Databoard, r: Databoard["matrix"][number]): string {
+  const source = financeSource(d, r.unit);
+  return `Finance board (${source ?? r.derived.asAt}): surplus ${compact$(r.derived.surplus ?? 0)}`;
 }
 
 function Metric({ k, v }: { k: string; v: React.ReactNode }) {

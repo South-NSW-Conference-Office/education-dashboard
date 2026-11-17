@@ -37,7 +37,7 @@ export function Chip({ colour, children, title, className }: { colour: Light | "
   return <span className={cx("chip", `chip-${colour}`, className)} title={title}>{children}</span>;
 }
 /** A small label; with `onClick` it is a button that looks the same, for a badge that leads somewhere. */
-export function Badge({ children, tone = "blue", title, onClick }: { children: ReactNode; tone?: "blue" | "amber" | "muted"; title?: string; onClick?: () => void }) {
+export function Badge({ children, tone = "blue", title, onClick }: { children: ReactNode; tone?: "blue" | "amber" | "muted" | "preliminary"; title?: string; onClick?: () => void }) {
   if (onClick) return <button type="button" className={`badge badge-${tone} badge-btn`} title={title} onClick={onClick}>{children}</button>;
   return <span className={`badge badge-${tone}`} title={title}>{children}</span>;
 }

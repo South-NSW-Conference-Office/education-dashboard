@@ -1,5 +1,5 @@
 /** Typed client for the backend. Every call goes through `send` so errors read the same everywhere. */
-import type { Board, Databoard, Overview, PdfImport, Period, PublishedImport, Summary, Timeline, Unit, VersionInfo } from "./types";
+import type { Board, Databoard, MyobSyncLog, MyobSyncStart, Overview, PdfImport, Period, PublishedImport, Summary, Timeline, Unit, VersionInfo } from "./types";
 import type { PeriodParams } from "./period";
 
 const BASE = (import.meta.env.VITE_API_BASE ?? "") + "/api/v1";
@@ -61,6 +61,13 @@ export const api = {
   },
   /** Turn a validated import into a draft version, or straight into the approved one. */
   publishImport: (id: string, approve: boolean) => request<PublishedImport>(`/imports/${id}/publish${q({ approve: approve ? "true" : undefined })}`, { method: "POST" }),
+  /**
+   * Start a MYOB sync. 202 means a run is going (poll myobSync). 200 with status
+   * disabled or not_configured means nothing was read.
+   */
+  syncFromMyob: (body: { period?: string; unit?: string } = {}) => request<MyobSyncStart>("/imports/myob", { method: "POST", body: JSON.stringify(body) }),
+  /** Progress while a sync is running, then the last result. Safe for boards.read. */
+  myobSync: () => request<MyobSyncLog>("/imports/myob"),
   /** The newest weekly board as at the selected period; its finance figures follow the same period. */
   databoard: (period: PeriodParams = {}) => request<Databoard>(`/databoard/latest${q(period)}`),
   saveDataboard: (weekEnding: string, doc: unknown, publish: boolean) =>

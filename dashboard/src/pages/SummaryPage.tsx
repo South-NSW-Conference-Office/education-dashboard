@@ -4,6 +4,7 @@ import { PageHeader, Pill } from "@/components/layout/PageHeader";
 import { PairedBars } from "@/components/charts";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { Badge, Button, Card, Chip, Dot, ErrorState, Kpi, Loading } from "@/components/ui";
+import { sourceNoteText, SourceLine } from "@/components/FinanceSource";
 import { TimelineCard } from "@/features/finance/TimelineCard";
 import { usePeriod } from "@/hooks/usePeriod";
 import { compact$, fmt, fmt$, pct } from "@/lib/format";
@@ -24,9 +25,10 @@ export function SummaryPage() {
   const d = s.data, t = d.totals;
   // Under Latest, All time or a range the boards may sit at different months: say which.
   const resolved = d.context.periods.join(" / ");
+  const source = sourceNoteText(d.schools.map((x) => ({ sourceLabel: x.sourceLabel, asAt: x.asAt })));
   const header = (
     <PageHeader eyebrow="Finance · All schools" title="Finance summary"
-      pills={<><PeriodPicker label="Boards as at" note={selection.kind !== "month" && resolved ? resolved : undefined} /><Pill label="Schools reporting">{d.context.boards} of {units.data?.length ?? d.context.boards}</Pill></>}
+      pills={<><PeriodPicker label="Boards as at" note={source ? <SourceLine text={source} /> : (selection.kind !== "month" && resolved ? resolved : undefined)} /><Pill label="Schools reporting">{d.context.boards} of {units.data?.length ?? d.context.boards}</Pill></>}
       actions={presenting ? <Button onClick={() => setPresenting(false)}>Exit presentation</Button> : <BoardMenu items={[{ label: "Present", action: () => setPresenting(true) }, { label: "Print", action: () => window.print() }]} />} />
   );
   if (!d.context.boards) return (
@@ -61,7 +63,7 @@ export function SummaryPage() {
               const iv = x.income.actual - x.income.budget, ev = x.spending.budget - x.spending.actual;
               return (
                 <tr key={x.unit} className="rowlink" onClick={() => nav(`/finance/${x.unit}`)}>
-                  <td><Link className="school-link" to={`/finance/${x.unit}`} onClick={(e) => e.stopPropagation()}><span><b>{x.name}</b><small>As at {x.asAt}{x.placeholder && <> · <Badge tone="amber">placeholder</Badge></>}</small></span></Link></td>
+                  <td><Link className="school-link" to={`/finance/${x.unit}`} onClick={(e) => e.stopPropagation()}><span><b>{x.name}</b><small>{x.sourceLabel ? <SourceLine text={x.sourceLabel} /> : <>As at {x.asAt}</>}{x.placeholder && <> · <Badge tone="amber">placeholder</Badge></>}</small></span></Link></td>
                   <td><SummaryAmount amount={x.income.actual} variance={iv} /></td>
                   <td><SummaryAmount amount={x.spending.actual} variance={ev} /></td>
                   <td><SummaryAmount amount={x.surplus.actual} variance={x.surVar} /></td>
