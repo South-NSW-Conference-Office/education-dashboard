@@ -24,22 +24,24 @@ export function MyobReconciliationView({ unit, unitName, log, error, loading, on
     if (error instanceof ApiError && error.status === 404) return <Card title={title}><Empty>MYOB sync is not available on this server yet.</Empty></Card>;
     return <ErrorState error={error} retry={onRetry} />;
   }
-  if (!log?.lastRun) {
+  if (!log?.lastResult) {
     return (
       <Card title={title}>
-        <Empty>{log && !log.enabled ? "MYOB sync is off, and no sync has been recorded." : "No MYOB sync has been recorded yet."}</Empty>
+        <Empty>{log?.running ? "A sync is running. The comparison appears when it finishes." : log && !log.enabled ? "MYOB sync is off, and no sync has been recorded." : "No MYOB sync has been recorded yet."}</Empty>
       </Card>
     );
   }
-  const run = log.lastRun;
+  const run = log.lastResult;
   const row = run.units.find((u) => u.unit === unit);
   return (
     <Card title={title} tools={<span className="hint">{unitName}</span>} id="myob-reconciliation">
+      {log.running && <p className="hint">A sync is still running. This comparison is the previous one.</p>}
       <p className="hint">
-        Last sync{run.period ? ` for ${run.period}` : ""} · status {run.status.toLowerCase()}
+        Last sync{run.period ? ` for ${run.period}` : ""} · status {run.status}
         {run.finishedAt ? ` · ${when(run.finishedAt)}` : ""}
         {run.message ? `. ${run.message}` : ""}
       </p>
+      {log.lastError && log.lastError !== run.message && <p className="hint">{log.lastError}</p>}
       {!row && <Empty>{unitName} was not in that sync.</Empty>}
       {row && !row.reconciliation && <Empty>{row.message || "No line comparison was stored for this school."}</Empty>}
       {row?.reconciliation && <ReconTables recon={row.reconciliation} row={row} />}
@@ -77,6 +79,7 @@ function ReconTables({ recon, row }: { recon: MyobReconciliation; row: MyobUnitS
             </div>
           )}
           <h3 className="tl-sub">Unmapped accounts</h3>
+          <p className="hint">These accounts are on the board. Class 190 sits under Administrative expenses. Any other account is under Other (not on report).</p>
           {recon.unmapped.length
             ? (
               <div className="table-scroll myob-scroll">

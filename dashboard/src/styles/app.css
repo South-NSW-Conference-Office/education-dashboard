@@ -420,7 +420,10 @@ button.rating{cursor:pointer}
 .timeline td .source-note{display:block;margin-top:4px;max-width:320px;color:var(--muted);font-size:.7rem;white-space:normal;line-height:1.45}
 .myob-results{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .myob-results li{background:var(--surface-2);border-radius:9px;padding:10px 12px}
+.myob-results li.myob-current{box-shadow:inset 2px 0 0 var(--neutral)}
 .myob-results p{margin:4px 0 0}
+.myob-live{margin:0}
+.posting-note{display:block;margin-top:3px;color:var(--faint);font-weight:400}
 .myob-scroll{max-height:360px}
 .myob-scroll .ftable{min-width:520px}
 .myob-scroll td .hint{display:block;margin-top:2px}

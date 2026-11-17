@@ -3,9 +3,10 @@
  * Reads that depend on the reporting period take it from the shared selection (usePeriod), so
  * changing the period in the header refetches every page the same way.
  */
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type VersionMode } from "@/lib/api";
-import type { Board } from "@/lib/types";
+import type { Board, MyobSyncDeclined } from "@/lib/types";
 import { isSpan } from "@/lib/period";
 import { usePeriod } from "./usePeriod";
 
@@ -76,21 +77,58 @@ export function usePublishImport(unit: string) {
   const invalidate = useInvalidateFinance();
   return useMutation({ mutationFn: ({ id, approve }: { id: string; approve: boolean }) => api.publishImport(id, approve), onSuccess: () => invalidate(unit) });
 }
-/** Manual MYOB sync. Any completed run refreshes the boards and the reconciliation log. */
-export function useSyncFromMyob() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body?: { period?: string; unit?: string }) => api.syncFromMyob(body),
-    onSuccess: () => Promise.all([
-      qc.invalidateQueries({ queryKey: ["board"] }), qc.invalidateQueries({ queryKey: ["overview"] }),
-      qc.invalidateQueries({ queryKey: ["versions"] }), qc.invalidateQueries({ queryKey: ["summary"] }),
-      qc.invalidateQueries({ queryKey: ["timeline"] }), qc.invalidateQueries({ queryKey: keys.periods }),
-      qc.invalidateQueries({ queryKey: ["databoard"] }), qc.invalidateQueries({ queryKey: keys.myob }),
-    ]),
-  });
+function refreshFinance(qc: ReturnType<typeof useQueryClient>) {
+  return Promise.all([
+    qc.invalidateQueries({ queryKey: ["board"] }), qc.invalidateQueries({ queryKey: ["overview"] }),
+    qc.invalidateQueries({ queryKey: ["versions"] }), qc.invalidateQueries({ queryKey: ["summary"] }),
+    qc.invalidateQueries({ queryKey: ["timeline"] }), qc.invalidateQueries({ queryKey: keys.periods }),
+    qc.invalidateQueries({ queryKey: ["databoard"] }), qc.invalidateQueries({ queryKey: keys.myob }),
+  ]);
 }
-/** Reconciliation log. Only mounted for someone who can import, so readers do not call it. */
-export const useMyobSync = () => useQuery({ queryKey: keys.myob, queryFn: api.myobSync, staleTime: 15_000 });
+
+/**
+ * The sync status. While `running` is true this polls about every five seconds, including after a
+ * reload, and when the run finishes it refreshes the boards. Readers who cannot import do not call it.
+ */
+export function useMyobSync(enabled = true) {
+  const qc = useQueryClient();
+  const wasRunning = useRef(false);
+  const q = useQuery({
+    queryKey: keys.myob,
+    queryFn: api.myobSync,
+    enabled,
+    staleTime: 0,
+    refetchInterval: (query) => (query.state.data?.running ? 5_000 : false),
+    refetchIntervalInBackground: true,
+  });
+  useEffect(() => {
+    const running = !!q.data?.running;
+    if (wasRunning.current && !running) void refreshFinance(qc);
+    wasRunning.current = running;
+  }, [q.data?.running, qc]);
+  return q;
+}
+
+/** Start a sync unless one is already being polled, and remember a disabled / not_configured answer. */
+export function useMyobRun(enabled: boolean) {
+  const log = useMyobSync(enabled);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [declined, setDeclined] = useState<MyobSyncDeclined | null>(null);
+  const start = async () => {
+    if (log.data?.running) return;
+    setError(null);
+    setDeclined(null);
+    setStarting(true);
+    try {
+      const res = await api.syncFromMyob();
+      if (res.status === "running") await log.refetch();
+      else if (res.status === "disabled" || res.status === "not_configured") setDeclined(res);
+    } catch (e) { setError(e); }
+    finally { setStarting(false); }
+  };
+  return { status: log.data, starting, error, declined, start };
+}
 
 export function useSaveDataboard() {
   const qc = useQueryClient();

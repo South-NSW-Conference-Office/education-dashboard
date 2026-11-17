@@ -8,7 +8,8 @@ import { FinanceBoardPage } from "../src/pages/FinanceBoardPage";
 import { SummaryPage } from "../src/pages/SummaryPage";
 import { DataboardPage } from "../src/pages/DataboardPage";
 import { ApiError } from "../src/lib/api";
-import type { MyobSyncLog, MyobSyncResult, Unit } from "../src/lib/types";
+import { myobProgressLine, sourceWithPosting } from "../src/lib/myobStatus";
+import type { MyobSyncDeclined, MyobSyncLog, Unit } from "../src/lib/types";
 
 const LABEL = "From MYOB, preliminary - as at October 2026";
 const amounts = { budget: 10, actual: 12, annualBudget: 20, eoyEstimate: 24 };
@@ -20,14 +21,15 @@ const state = vi.hoisted(() => ({
   placeholder: false,
   selection: { kind: "month" } as { kind: string; label?: string; from?: string; to?: string },
   periodLabel: "October 2026",
-  sync: { mutate: vi.fn(), isPending: false, isError: false, error: null as unknown, data: undefined as MyobSyncResult | undefined },
+  posted: "2026-11-12" as string | null,
+  run: { status: undefined as MyobSyncLog | undefined, starting: false, error: null as unknown, declined: null as MyobSyncDeclined | null, start: vi.fn() },
   log: { data: undefined as MyobSyncLog | undefined, isPending: false, isError: false, error: null as unknown, refetch: vi.fn() },
 }));
 
 const board = () => ({
   meta: {
     unit: "bcc", unitName: "Border Christian College", shortName: "BCC", asAt: "October 2026", version: 4, versionId: "v",
-    status: "APPROVED" as const, placeholder: state.placeholder, sourceLabel: state.sourceLabel,
+    status: "APPROVED" as const, placeholder: state.placeholder, sourceLabel: state.sourceLabel, myobLastPosted: state.posted,
     lastSaved: null, approvedAt: "2026-11-02T01:00:00.000Z", generatedAt: "2026-11-02T01:00:00.000Z",
   },
   addback: { ytdBudget: 0, ytdActual: 0 },
@@ -46,7 +48,7 @@ vi.mock("@/hooks/queries", () => ({
   useSaveBoard: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePeriods: () => ({ data: [], isLoading: false, error: null }),
   useTimeline: () => ({ data: { periods: [] }, isPending: false }),
-  useSyncFromMyob: () => state.sync,
+  useMyobRun: () => state.run,
   useMyobSync: () => state.log,
   useSummary: () => ({ data: state.summary, isPending: false, error: null }),
   useDataboard: () => ({ data: state.databoard, isPending: false, error: null }),
@@ -68,19 +70,17 @@ Object.assign(state, {
   },
 });
 
-const blankResult = (over: Partial<MyobSyncResult>): MyobSyncResult => ({
-  status: "ok", message: "", period: null, fromPeriod: null, toPeriod: null, ledger: null, budgetLedger: null, budgetSource: null,
-  excludedBranches: [], unassignedBranches: [], units: [], ...over,
-});
+const freshRun = () => ({ status: undefined as MyobSyncLog | undefined, starting: false, error: null as unknown, declined: null as MyobSyncDeclined | null, start: vi.fn() });
 
 afterEach(() => {
   cleanup();
   state.write = true;
   state.sourceLabel = LABEL;
   state.placeholder = false;
+  state.posted = "2026-11-12";
   state.selection = { kind: "month" };
   state.periodLabel = "October 2026";
-  state.sync = { mutate: vi.fn(), isPending: false, isError: false, error: null, data: undefined };
+  state.run = freshRun();
   state.log = { data: undefined, isPending: false, isError: false, error: null, refetch: vi.fn() };
 });
 
@@ -90,6 +90,8 @@ describe("MYOB source label", () => {
   it("names a preliminary board and keeps the placeholder banner for sample data only", () => {
     finance();
     expect(screen.getAllByText(/From MYOB, preliminary - as at October 2026/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/latest posting 12 Nov 2026/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Month-end entries usually land by the 12th.")).toBeTruthy();
     expect(screen.getAllByText("Preliminary").length).toBeGreaterThan(0);
     expect(screen.queryByText(/Placeholder figures/)).toBeNull();
   });
@@ -101,6 +103,8 @@ describe("MYOB source label", () => {
     finance();
     expect(screen.queryByText("Preliminary")).toBeNull();
     expect(screen.queryByText(/From MYOB/)).toBeNull();
+    expect(screen.queryByText(/latest posting/)).toBeNull();
+    expect(screen.queryByText(/usually land by the 12th/)).toBeNull();
     expect(screen.getByText("October 2026")).toBeTruthy();
   });
 
@@ -115,6 +119,8 @@ describe("MYOB source label", () => {
   it("joins a MYOB label with a PDF month the label does not already name", () => {
     expect(sourceNoteText([{ sourceLabel: LABEL, asAt: "October 2026" }, { sourceLabel: null, asAt: "October 2026" }, { asAt: "September 2026" }])).toBe(`${LABEL} · September 2026`);
     expect(sourceNoteText([{ asAt: "September 2026" }])).toBeNull();
+    expect(sourceWithPosting(LABEL, "2026-11-12")).toBe(`${LABEL} · latest posting 12 Nov 2026`);
+    expect(sourceWithPosting(LABEL, null)).toBe(LABEL);
   });
 });
 
@@ -133,35 +139,66 @@ describe("Sync from MYOB", () => {
     expect(screen.queryByText("MYOB reconciliation")).toBeNull();
   });
 
-  it("shows progress, then a disabled status, a per-school month, or the error", () => {
-    const { rerender } = render(<MyobSyncDialog pending error={null} units={units} onClose={vi.fn()} />);
-    expect(screen.getByText(/Loading the year-to-date figures from MYOB/)).toBeTruthy();
-    rerender(<MyobSyncDialog pending={false} error={null} units={units} onClose={vi.fn()} result={blankResult({ status: "disabled", message: "MYOB sync is off. Nothing was read or written." })} />);
+  it("shows a month-by-month progress line, a declined status, the finished result, or the error", () => {
+    const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October"];
+    const running: MyobSyncLog = {
+      enabled: true, configured: true, schedule: "Weekdays", label: LABEL, running: true, lastResult: null, lastError: null,
+      progress: {
+        runId: "r", trigger: "manual", startedAt: null, period: "October 2026", phase: "pulling",
+        schools: [{ unit: "bcc", branch: "BCC", status: "pending", message: null }],
+        months: names.map((label, i) => ({ period: `${String(i + 1).padStart(2, "0")}2026`, label: `${label} 2026`, status: i < 2 ? "done" : i === 2 ? "running" : "pending", rows: i < 2 ? 1200 : null, error: null })),
+      },
+    };
+    expect(myobProgressLine(running.progress)).toBe("Reading MYOB: March 2026 (3 of 10)");
+    const props = { starting: false, error: null, declined: null as MyobSyncDeclined | null, units, onClose: vi.fn() };
+    const { rerender } = render(<MyobSyncDialog {...props} starting />);
+    expect(screen.getByText(/Starting the MYOB sync/)).toBeTruthy();
+    rerender(<MyobSyncDialog {...props} status={running} />);
+    expect(screen.getByText("Reading MYOB: March 2026 (3 of 10)")).toBeTruthy();
+    expect(screen.getByText("March 2026")).toBeTruthy();
+    rerender(<MyobSyncDialog {...props} declined={{ status: "disabled", message: "MYOB sync is off. Nothing was read or written." }} />);
     expect(screen.getByText(/Status: disabled/)).toBeTruthy();
     expect(screen.getByText(/Nothing was read or written/)).toBeTruthy();
-    rerender(<MyobSyncDialog pending={false} error={null} units={units} onClose={vi.fn()} result={blankResult({
-      status: "not_configured", message: "MYOB_EDUCATION_PASSWORD is not set. Sync did nothing.",
-    })} />);
+    rerender(<MyobSyncDialog {...props} declined={{ status: "not_configured", message: "MYOB_EDUCATION_PASSWORD is not set. Sync did nothing." }} />);
     expect(screen.getByText(/Status: not_configured/)).toBeTruthy();
-    rerender(<MyobSyncDialog pending={false} error={null} units={units} onClose={vi.fn()} result={blankResult({
-      status: "ok", period: "October 2026", message: "Saved 1 preliminary board for October 2026.",
-      units: [{ unit: "bcc", branch: "BCC", status: "saved", message: `${LABEL}. Readers will see this until an operating report is approved.`, sourceLabel: LABEL, pdfRemainsAuthoritative: false, versionId: "1", comparisonNote: null, reconciliation: null }],
-    })} />);
+    rerender(<MyobSyncDialog {...props} status={{
+      enabled: true, configured: true, schedule: "Weekdays", label: LABEL, running: false, progress: null, lastError: "One school could not be saved.",
+      lastResult: { id: "1", trigger: "manual", status: "PARTIAL", message: "Saved 1 preliminary board for October 2026.", period: "October 2026", ledger: "ACTUALAUD", budgetLedger: null, budgetSource: "pdf", excludedBranches: [], unassignedBranches: [], startedAt: null, finishedAt: null, units: [{ unit: "bcc", branch: "BCC", status: "saved", message: `${LABEL}. Readers will see this until an operating report is approved.`, sourceLabel: LABEL, pdfRemainsAuthoritative: false, versionId: "1", comparisonNote: null, reconciliation: null }] },
+    }} />);
+    expect(screen.getByText(/Status: PARTIAL/)).toBeTruthy();
+    expect(screen.getByText(/One school could not be saved/)).toBeTruthy();
     expect(screen.getByText("Border Christian College")).toBeTruthy();
     expect(screen.getByText(new RegExp(LABEL))).toBeTruthy();
-    expect(screen.getByText("October 2026")).toBeTruthy();
-    rerender(<MyobSyncDialog pending={false} error={new Error("Ledger timed out")} units={units} onClose={vi.fn()} />);
+    rerender(<MyobSyncDialog {...props} error={new Error("Ledger timed out")} />);
     expect(screen.getByText(/Ledger timed out/)).toBeTruthy();
   });
 
-  it("starts a sync from the finance board and shows the result", () => {
-    state.sync.data = blankResult({ status: "disabled", message: "MYOB sync is off. Nothing was read or written." });
+  it("starts a sync when nothing is running, and resumes one without posting again", () => {
     finance();
     fireEvent.click(screen.getByText("Actions"));
     fireEvent.click(screen.getByRole("button", { name: "Sync from MYOB" }));
-    expect(state.sync.mutate).toHaveBeenCalledOnce();
-    expect(screen.getByRole("dialog", { name: "Sync from MYOB" })).toBeTruthy();
-    expect(screen.getByText(/Status: disabled/)).toBeTruthy();
+    expect(state.run.start).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Starting the MYOB sync/)).toBeTruthy();
+    cleanup();
+    state.run = freshRun();
+    const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October"];
+    state.run.status = {
+      enabled: true, configured: true, schedule: "Weekdays", label: LABEL, running: true, lastResult: null, lastError: null,
+      progress: {
+        runId: "r", trigger: "manual", startedAt: null, period: "October 2026", phase: "pulling",
+        schools: [],
+        months: names.map((label, i) => ({ period: `${String(i + 1).padStart(2, "0")}2026`, label: `${label} 2026`, status: i < 2 ? "done" : i === 2 ? "running" : "pending", rows: null, error: null })),
+      },
+    };
+    finance();
+    expect(screen.getByRole("status").textContent).toBe("Reading MYOB: March 2026 (3 of 10)");
+    fireEvent.click(screen.getByText("Actions"));
+    fireEvent.click(screen.getByRole("button", { name: "MYOB sync in progress" }));
+    expect(state.run.start).not.toHaveBeenCalled();
+    expect(screen.getAllByText("Reading MYOB: March 2026 (3 of 10)").length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByText("Close"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("Reading MYOB: March 2026 (3 of 10)");
   });
 });
 
@@ -172,15 +209,15 @@ describe("MYOB reconciliation", () => {
     excluded: [],
     surplus: { pdf: 90, myobOnReportLines: 100, differenceOnReportLines: 10, unmappedIncome: 0, unmappedExpense: 40, glSurplusApprox: 60 },
   };
-  const log = (row?: Partial<MyobSyncLog["lastRun"]>): MyobSyncLog => ({
-    enabled: true, configured: true, schedule: "Weekdays", label: LABEL,
-    lastRun: { id: "1", trigger: "manual", status: "OK", message: "Saved 1 preliminary board.", period: "October 2026", ledger: "ACTUALAUD", budgetLedger: null, budgetSource: "pdf", excludedBranches: [], unassignedBranches: [], units: [{ unit: "bcc", branch: "BCC", status: "saved", message: LABEL, sourceLabel: LABEL, pdfRemainsAuthoritative: false, versionId: "1", comparisonNote: "PDF figures are from September 2026; MYOB is October 2026.", reconciliation: recon }], startedAt: null, finishedAt: "2026-11-16T06:12:00.000Z", createdAt: null, ...row },
+  const log = (): MyobSyncLog => ({
+    enabled: true, configured: true, schedule: "Weekdays", label: LABEL, running: false, progress: null, lastError: null,
+    lastResult: { id: "1", trigger: "manual", status: "OK", message: "Saved 1 preliminary board.", period: "October 2026", ledger: "ACTUALAUD", budgetLedger: null, budgetSource: "pdf", excludedBranches: [], unassignedBranches: [], units: [{ unit: "bcc", branch: "BCC", status: "saved", message: LABEL, sourceLabel: LABEL, pdfRemainsAuthoritative: false, versionId: "1", comparisonNote: "PDF figures are from September 2026; MYOB is October 2026.", reconciliation: recon }], startedAt: null, finishedAt: "2026-11-16T06:12:00.000Z" },
   });
 
   it("covers loading, empty, unavailable, and the line comparison", () => {
     const { rerender } = render(<MyobReconciliationView unit="bcc" unitName="Border Christian College" loading error={null} onRetry={vi.fn()} />);
     expect(screen.getByText(/Loading the MYOB reconciliation/)).toBeTruthy();
-    rerender(<MyobReconciliationView unit="bcc" unitName="Border Christian College" loading={false} error={null} log={{ enabled: false, configured: false, schedule: "", label: "", lastRun: null }} />);
+    rerender(<MyobReconciliationView unit="bcc" unitName="Border Christian College" loading={false} error={null} log={{ enabled: false, configured: false, schedule: "", label: "", running: false, progress: null, lastResult: null, lastError: null }} />);
     expect(screen.getByText(/MYOB sync is off/)).toBeTruthy();
     rerender(<MyobReconciliationView unit="bcc" unitName="Border Christian College" loading={false} error={new ApiError(404, "Not found")} />);
     expect(screen.getByText(/not available on this server/)).toBeTruthy();
@@ -191,6 +228,8 @@ describe("MYOB reconciliation", () => {
     rerender(<MyobReconciliationView unit="bcc" unitName="Border Christian College" loading={false} error={null} log={log()} />);
     expect(screen.getByText(/Tuition/)).toBeTruthy();
     expect(screen.getByText(/Sundry/)).toBeTruthy();
+    expect(screen.getByText(/Class 190 sits under Administrative expenses/)).toBeTruthy();
+    expect(screen.getByText(/Other \(not on report\)/)).toBeTruthy();
     expect(screen.getByText(/PDF figures are from September 2026/)).toBeTruthy();
     expect(screen.getByText("$100")).toBeTruthy();
     expect(screen.getByText("$90")).toBeTruthy();

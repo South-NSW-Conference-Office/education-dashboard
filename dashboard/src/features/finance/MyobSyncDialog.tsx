@@ -1,15 +1,15 @@
 /**
- * Manual MYOB sync. The request can sit on the ledger for a while, so the dialog stays on
- * "reading" until the API answers with a status (including disabled / not_configured) or an error.
- * A saved school names the month it loaded via sourceLabel.
+ * Manual MYOB sync. POST returns immediately; a full year is one month at a time and takes
+ * about twelve minutes, so this dialog reads the polled status. Closing it does not stop the run.
  */
-import { Badge, Banner, Button, Loading, Modal } from "@/components/ui";
-import type { MyobSyncResult, MyobUnitSync, Unit } from "@/lib/types";
+import { Badge, Banner, Button, Modal } from "@/components/ui";
+import { myobProgressLine } from "@/lib/myobStatus";
+import type { MyobLastResult, MyobProgress, MyobSyncDeclined, MyobSyncLog, MyobUnitSync, Unit } from "@/lib/types";
 
-const COPY: Record<MyobSyncResult["status"], { tone: "green" | "blue" | "red"; title: string }> = {
-  ok: { tone: "green", title: "Sync finished" },
-  partial: { tone: "blue", title: "Sync finished with gaps" },
-  failed: { tone: "red", title: "Sync failed" },
+const COPY: Record<string, { tone: "green" | "blue" | "red"; title: string }> = {
+  OK: { tone: "green", title: "Sync finished" },
+  PARTIAL: { tone: "blue", title: "Sync finished with gaps" },
+  FAILED: { tone: "red", title: "Sync failed" },
   disabled: { tone: "blue", title: "Sync is off" },
   not_configured: { tone: "blue", title: "MYOB is not configured" },
 };
@@ -17,38 +17,86 @@ const COPY: Record<MyobSyncResult["status"], { tone: "green" | "blue" | "red"; t
 const schoolName = (code: string, units: Unit[]) => units.find((u) => u.code === code)?.name ?? code;
 
 function schoolLine(u: MyobUnitSync): string {
-  if (u.sourceLabel && !u.message.includes(u.sourceLabel)) return `${u.sourceLabel}. ${u.message}`;
+  if (u.sourceLabel && u.message && !u.message.includes(u.sourceLabel)) return `${u.sourceLabel}. ${u.message}`;
   return u.message || u.sourceLabel || "";
 }
 
-export function MyobSyncDialog({ pending, error, result, units, onClose }: {
-  pending: boolean; error: unknown; result?: MyobSyncResult; units: Unit[]; onClose: () => void;
+export function MyobSyncDialog({ starting, error, declined, status, units, onClose }: {
+  starting: boolean; error: unknown; declined: MyobSyncDeclined | null; status?: MyobSyncLog; units: Unit[]; onClose: () => void;
 }) {
   const title = "Sync from MYOB";
-  if (pending || (!result && !error)) {
+  const close = <Button onClick={onClose}>Close</Button>;
+  if (status?.running) return <ProgressDialog progress={status.progress} units={units} onClose={onClose} />;
+  if (starting || (!declined && !error && !status?.lastResult)) {
     return (
-      <Modal title={title} onClose={onClose} footer={<Button onClick={onClose}>Close</Button>}>
-        <Loading what="year-to-date figures from MYOB" />
-        <p className="hint">Reading the latest closed month. An approved operating report for that month, or a later one, stays what the boards show.</p>
+      <Modal title={title} onClose={onClose} footer={close}>
+        <p className="hint" role="status">Starting the MYOB sync…</p>
       </Modal>
     );
   }
-  if (error && !result) {
+  if (error) {
     const message = error instanceof Error ? error.message : "The sync could not be completed";
     return (
-      <Modal title={title} onClose={onClose} footer={<Button onClick={onClose}>Close</Button>}>
+      <Modal title={title} onClose={onClose} footer={close}>
         <Banner tone="red"><b>Could not sync from MYOB.</b> {message}</Banner>
       </Modal>
     );
   }
-  if (!result) return null;
+  if (declined) {
+    const copy = COPY[declined.status] ?? { tone: "blue" as const, title: "Sync did not start" };
+    return (
+      <Modal title={title} onClose={onClose} footer={close}>
+        <Banner tone={copy.tone}><b>{copy.title}.</b> Status: {declined.status}. {declined.message}{/\bnothing was read\b/i.test(declined.message) ? "" : " Nothing was read or written."}</Banner>
+      </Modal>
+    );
+  }
+  if (status?.lastResult) return <ResultDialog result={status.lastResult} lastError={status.lastError} units={units} onClose={onClose} />;
+  return (
+    <Modal title={title} onClose={onClose} footer={close}>
+      <p className="hint" role="status">Starting the MYOB sync…</p>
+    </Modal>
+  );
+}
+
+function ProgressDialog({ progress, units, onClose }: { progress: MyobProgress | null; units: Unit[]; onClose: () => void }) {
+  const line = myobProgressLine(progress);
+  return (
+    <Modal title="Sync from MYOB" onClose={onClose} wide footer={<Button onClick={onClose}>Close</Button>}>
+      <p className="hint" role="status"><b>{line}</b></p>
+      <p className="hint">Each month is read on its own. A full year usually takes about twelve minutes. You can close this and come back — the sync keeps going.</p>
+      {progress && progress.months.length > 0 && (
+        <ul className="myob-results">
+          {progress.months.map((m) => (
+            <li key={m.period} className={m.status === "running" ? "myob-current" : undefined}>
+              <div><b>{m.label}</b> <span className="hint">{m.status}{m.rows != null ? ` · ${m.rows.toLocaleString("en-AU")} rows` : ""}</span></div>
+              {m.error && <p className="hint">{m.error}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {progress && progress.schools.some((s) => s.status !== "pending") && (
+        <ul className="myob-results">
+          {progress.schools.map((s) => (
+            <li key={s.unit} className={s.status === "running" ? "myob-current" : undefined}>
+              <div><b>{schoolName(s.unit, units)}</b> <span className="hint">{s.status}</span></div>
+              {s.message && <p className="hint">{s.message}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
+  );
+}
+
+function ResultDialog({ result, lastError, units, onClose }: { result: MyobLastResult; lastError: string | null; units: Unit[]; onClose: () => void }) {
   const copy = COPY[result.status] ?? { tone: "red" as const, title: "Sync failed" };
   const saved = result.units.filter((u) => u.status === "saved").length;
   const skipped = result.units.filter((u) => u.status === "skipped").length;
   const failed = result.units.filter((u) => u.status === "failed").length;
   return (
-    <Modal title={title} onClose={onClose} wide={result.units.length > 0} footer={<Button onClick={onClose}>Close</Button>}>
+    <Modal title="Sync from MYOB" onClose={onClose} wide={result.units.length > 0} footer={<Button onClick={onClose}>Close</Button>}>
       <Banner tone={copy.tone}><b>{copy.title}.</b> Status: {result.status}. {result.message}</Banner>
+      {lastError && lastError !== result.message && <p className="hint">{lastError}</p>}
       {(result.period || result.units.length > 0) && (
         <div className="import-meta">
           {result.period && <span className="pill"><label>Month</label><b>{result.period}</b></span>}

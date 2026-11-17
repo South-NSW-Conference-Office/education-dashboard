@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
-import { useBoard, useOverview, useSaveBoard, useSyncFromMyob, useUnits, useVersions } from "@/hooks/queries";
+import { useBoard, useMyobRun, useOverview, useSaveBoard, useUnits, useVersions } from "@/hooks/queries";
 import { PageHeader, Pill } from "@/components/layout/PageHeader";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { Badge, Banner, Button, Card, ErrorState, Loading, SaveBar, useToast } from "@/components/ui";
@@ -15,6 +15,7 @@ import { ImportPdfDialog } from "@/features/finance/ImportPdfDialog";
 import { MyobReconciliationPanel } from "@/features/finance/MyobReconciliationPanel";
 import { MyobSyncDialog } from "@/features/finance/MyobSyncDialog";
 import { PreliminaryTag, SourceLine } from "@/components/FinanceSource";
+import { myobProgressLine, sourceWithPosting } from "@/lib/myobStatus";
 import { TimelineCard } from "@/features/finance/TimelineCard";
 import { usePeriod } from "@/hooks/usePeriod";
 import { useAccess } from "@/hooks/useAuth";
@@ -43,7 +44,8 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
   const [pdf, setPdf] = useState<File | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const sync = useSyncFromMyob();
+  const myob = useMyobRun(can("imports.write"));
+  const openSync = () => { setSyncOpen(true); if (!myob.status?.running) void myob.start(); };
   // When editing began: only a draft fetched after that is taken, never a stale cached copy.
   const [openedAt, setOpenedAt] = useState(0);
 
@@ -134,11 +136,11 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
               </>}
             </Pill>
           ) : (
-            <PeriodPicker note={board.meta.sourceLabel ? <SourceLine text={board.meta.sourceLabel} /> : (selection.kind !== "month" ? board.meta.asAt : undefined)}
+            <PeriodPicker note={board.meta.sourceLabel ? <><SourceLine text={sourceWithPosting(board.meta.sourceLabel, board.meta.myobLastPosted)} /><span className="posting-note">Month-end entries usually land by the 12th.</span></> : (selection.kind !== "month" ? board.meta.asAt : undefined)}
               extra={can("boards.edit") ? <button type="button" className="rowbtn pencil pill-pencil" title="Open a draft and change its reporting period" aria-label="Open a draft and change its reporting period"
                 onClick={() => { onBeginEdit(); setPeriodEdit(board.meta.asAt); }}>✎</button> : undefined} />
           )}
-          <Pill label="Version" title={[board.meta.sourceLabel, board.meta.approvedAt ? `Approved ${when(board.meta.approvedAt)}` : `Last saved ${when(board.meta.lastSaved)}`].filter(Boolean).join(" · ")}>
+          <Pill label="Version" title={[board.meta.sourceLabel ? sourceWithPosting(board.meta.sourceLabel, board.meta.myobLastPosted) : null, board.meta.approvedAt ? `Approved ${when(board.meta.approvedAt)}` : `Last saved ${when(board.meta.lastSaved)}`].filter(Boolean).join(" · ")}>
             v{board.meta.version} · {status === "APPROVED" ? "approved" : status.toLowerCase().replace("_", " ")}
             {board.meta.sourceLabel && <PreliminaryTag title={board.meta.sourceLabel} />}
             {!editing && openDraft && can("boards.edit") && <> <Badge tone="amber" title={`Open draft v${openDraft.versionNo}${openDraft.period ? ` (${openDraft.period})` : ""} to review, edit and publish it`} onClick={onBeginEdit}>draft v{openDraft.versionNo}{openDraft.period ? ` · ${openDraft.period}` : ""} · open ›</Badge></>}
@@ -150,7 +152,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
             { label: "Present", action: () => setPresenting(true) },
             ...(can("imports.write") ? [
               { label: "Upload report PDF", action: () => fileInput.current?.click(), disabled: editing },
-              { label: "Sync from MYOB", action: () => { if (!sync.isPending) sync.mutate({}); setSyncOpen(true); }, disabled: editing || sync.isPending },
+              { label: myob.status?.running ? "MYOB sync in progress" : "Sync from MYOB", action: openSync, disabled: editing },
             ] : []),
             { label: "Print", action: () => window.print() },
           ]} />}
@@ -168,6 +170,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
       />
 
       {board.meta.placeholder && <Banner tone="amber"><b>Placeholder figures.</b> This board's numbers are for layout only and were not taken from an operating report. Replace them before sharing.</Banner>}
+      {can("imports.write") && myob.status?.running && <p className="hint myob-live" role="status">{myobProgressLine(myob.status.progress)}</p>}
       {editable && status !== "APPROVED" && <Banner tone="amber"><b>You are editing draft v{board.meta.version}.</b> It was opened earlier and readers still see the approved figures until it is published.</Banner>}
       {editing && draftBoard.isLoading && <Loading what="draft" />}
 
@@ -190,7 +193,7 @@ export function FinanceBoardPage({ tab }: { tab: "overview" | "details" }) {
           onDone={(message, warning, openDraft) => { toast(message); if (warning) toast(warning, "warn"); setPdf(null); endSession(); if (openDraft) onBeginEdit(); }} />
       )}
       {syncOpen && (
-        <MyobSyncDialog pending={sync.isPending} error={sync.isError ? sync.error : null} result={sync.isError ? undefined : sync.data}
+        <MyobSyncDialog starting={myob.starting} error={myob.error} declined={myob.declined} status={myob.status}
           units={units.data ?? []} onClose={() => setSyncOpen(false)} />
       )}
 

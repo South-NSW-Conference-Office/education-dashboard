@@ -18,6 +18,8 @@ export interface BoardMeta {
   status: "DRAFT" | "IN_REVIEW" | "APPROVED" | "SUPERSEDED" | "REJECTED"; placeholder: boolean;
   /** Set on a preliminary MYOB cut, e.g. "From MYOB, preliminary - as at October 2026". Absent for an approved operating-report PDF. */
   sourceLabel?: string | null; preliminary?: boolean; source?: string | null;
+  /** Latest MYOB posting date on this school's rows, YYYY-MM-DD. */
+  myobLastPosted?: string | null;
   lastSaved: string | null; approvedAt: string | null; generatedAt: string; draft?: boolean;
 }
 export interface Board {
@@ -109,24 +111,40 @@ export interface MyobReconciliation {
   excluded: Array<MyobUnmappedAccount & { reason: string }>;
   surplus: { pdf: number; myobOnReportLines: number; differenceOnReportLines: number; unmappedIncome: number; unmappedExpense: number; glSurplusApprox: number };
 }
-/** One school on a sync. `saved` means a preliminary month was loaded; `sourceLabel` names that month. */
+/** One school on a finished sync. `saved` means a preliminary month was loaded; `sourceLabel` names that month. */
 export interface MyobUnitSync {
   unit: string; branch: string | null; status: "saved" | "skipped" | "failed"; message: string;
   sourceLabel: string | null; pdfRemainsAuthoritative: boolean; versionId: string | null;
   comparisonNote: string | null; reconciliation: MyobReconciliation | null;
 }
-export interface MyobSyncResult {
-  status: "disabled" | "not_configured" | "ok" | "partial" | "failed";
-  message: string; period: string | null; fromPeriod: string | null; toPeriod: string | null;
-  ledger: string | null; budgetLedger: string | null; budgetSource: "myob" | "pdf" | null;
-  excludedBranches: string[]; unassignedBranches: string[]; units: MyobUnitSync[];
+export interface MyobMonthProgress {
+  period: string; label: string; status: "pending" | "running" | "done" | "failed"; rows: number | null; error: string | null;
 }
+export interface MyobSchoolProgress {
+  unit: string; branch: string | null; status: "pending" | "running" | "saved" | "skipped" | "failed"; message: string | null;
+}
+export interface MyobProgress {
+  runId: string; trigger: string; startedAt: string | null; period: string | null;
+  phase: "starting" | "pulling" | "saving" | "done";
+  months: MyobMonthProgress[]; schools: MyobSchoolProgress[];
+}
+/** 202 from POST /imports/myob: a run is in progress. Poll GET /imports/myob. */
+export interface MyobSyncRunning {
+  accepted: true; alreadyRunning: boolean; runId: string; status: "running"; poll: string;
+}
+/** 200 from POST: the sync did not start. */
+export interface MyobSyncDeclined {
+  status: "disabled" | "not_configured"; message: string; period?: string | null; units?: MyobUnitSync[];
+}
+export type MyobSyncStart = MyobSyncRunning | MyobSyncDeclined;
+export interface MyobLastResult {
+  id: string; trigger: string; status: "OK" | "PARTIAL" | "FAILED" | string; message: string; period: string | null;
+  ledger: string | null; budgetLedger: string | null; budgetSource: string | null;
+  excludedBranches: string[]; unassignedBranches: string[]; units: MyobUnitSync[];
+  startedAt: string | null; finishedAt: string | null;
+}
+/** GET /imports/myob. `running` is polled until it is false, then `lastResult` is the finished run. */
 export interface MyobSyncLog {
   enabled: boolean; configured: boolean; schedule: string; label: string;
-  lastRun: {
-    id: string; trigger: string; status: string; message: string; period: string | null;
-    ledger: string | null; budgetLedger: string | null; budgetSource: "myob" | "pdf" | null;
-    excludedBranches: string[]; unassignedBranches: string[]; units: MyobUnitSync[];
-    startedAt: string | null; finishedAt: string | null; createdAt: string | null;
-  } | null;
+  running: boolean; progress: MyobProgress | null; lastResult: MyobLastResult | null; lastError: string | null;
 }
