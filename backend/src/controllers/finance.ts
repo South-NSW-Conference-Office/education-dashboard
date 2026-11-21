@@ -5,6 +5,7 @@
 import { Types } from "mongoose";
 import { ReconciliationCheckModel } from "@/models";
 import type { BoardDocument } from "@/domain/types";
+import { actorFor } from "@/lib/access";
 import { badRequest, notFound, ok, parseBody, query } from "@/lib/http";
 import { ReportVersionModel } from "@/models";
 import { presentBoard, presentOverview, presentSummary, presentTimeline } from "@/presenters/finance";
@@ -55,7 +56,7 @@ export async function getLineItems(req: Request, unit: string) {
 export async function putBoard(req: Request, unit: string) {
   const body = (await parseBody(req, boardDocumentSchema)) as unknown as BoardDocument;
   const publish = query(req).get("publish") === "true";
-  const { warnings, version } = await saveBoardDocument(unit, body, { publish });
+  const { warnings, version } = await saveBoardDocument(unit, body, { publish, actor: actorFor(req) });
   const board = await loadUnitBoard(unit, { periodLabel: body.meta.asAt, versionMode: publish ? "LATEST_APPROVED" : "DRAFT" });
   return ok({ ...presentBoard(board), warnings, saved: presentVersion(version) });
 }
@@ -64,7 +65,7 @@ export async function putBoard(req: Request, unit: string) {
 export async function patchLines(req: Request, unit: string) {
   const patch = await parseBody(req, lineItemPatchSchema);
   const current = presentBoard(await loadUnitBoard(unit, { periodLabel: patch.periodLabel, versionMode: "DRAFT" }));
-  const { warnings, version } = await patchLineItems(unit, patch, current);
+  const { warnings, version } = await patchLineItems(unit, patch, current, actorFor(req));
   const board = await loadUnitBoard(unit, { periodLabel: patch.periodLabel ?? current.meta.asAt, versionMode: "DRAFT" });
   return ok({ ...presentBoard(board), warnings, saved: presentVersion(version) });
 }
@@ -86,21 +87,28 @@ export async function postVersion(req: Request, unit: string) {
   return ok({ ...presentVersion(v), period: p.label }, { status: 201 });
 }
 
-export async function postSubmit(_req: Request, unit: string, id: string) {
-  await getUnit(unit);
-  return ok(presentVersion(await submit(await getVersion(id))));
-}
-export async function postApprove(_req: Request, unit: string, id: string) {
+/** The version, only if it belongs to the URL's unit — a foreign unit's id 404s like an unknown one. */
+async function getUnitVersion(unit: string, id: string) {
   const u = await getUnit(unit);
   const v = await getVersion(id);
+  if (String(v.operatingUnitId) !== String(u._id)) throw notFound(`Version "${id}"`);
+  return { u, v };
+}
+
+export async function postSubmit(_req: Request, unit: string, id: string) {
+  const { v } = await getUnitVersion(unit, id);
+  return ok(presentVersion(await submit(v)));
+}
+export async function postApprove(req: Request, unit: string, id: string) {
+  const { u, v } = await getUnitVersion(unit, id);
   const p = (await listPeriods()).find((x) => String(x._id) === String(v.fiscalPeriodId));
   if (!p) throw notFound("Period for version");
-  return ok(presentVersion(await approveVersion(u, p, v)));
+  return ok(presentVersion(await approveVersion(u, p, v, actorFor(req))));
 }
 export async function postReject(req: Request, unit: string, id: string) {
-  await getUnit(unit);
+  const { v } = await getUnitVersion(unit, id);
   const { reason } = await parseBody(req, rejectSchema);
-  return ok(presentVersion(await reject(await getVersion(id), reason)));
+  return ok(presentVersion(await reject(v, reason)));
 }
 
 /** Live reconciliation for the version being viewed, plus the checks stored at approval (with their resolution). */
@@ -114,10 +122,14 @@ export async function getReconciliations(req: Request, unit: string) {
   });
 }
 export async function postResolve(req: Request, unit: string, id: string) {
-  await getUnit(unit);
+  const u = await getUnit(unit);
   if (!Types.ObjectId.isValid(id)) throw notFound("Reconciliation check");
+  const check = await ReconciliationCheckModel.findById(id).lean();
+  if (!check) throw notFound("Reconciliation check");
+  const v = await getVersion(String(check.reportVersionId));
+  if (String(v.operatingUnitId) !== String(u._id)) throw notFound("Reconciliation check");
   const { status, explanation } = await parseBody(req, resolveSchema);
-  const r = await ReconciliationCheckModel.findByIdAndUpdate(id, { $set: { status, explanation, resolvedAt: new Date(), resolvedBy: "anonymous" } }, { new: true }).lean();
+  const r = await ReconciliationCheckModel.findByIdAndUpdate(id, { $set: { status, explanation, resolvedAt: new Date(), resolvedBy: actorFor(req) } }, { new: true }).lean();
   if (!r) throw notFound("Reconciliation check");
   return ok({ id: String(r._id), status: r.status, explanation: r.explanation });
 }

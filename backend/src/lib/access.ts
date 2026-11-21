@@ -90,6 +90,23 @@ async function fetchAccess(email: string): Promise<AppAccess> {
   return access;
 }
 
+/**
+ * Production never runs open: SSO off there means a lost or typoed env var,
+ * so every request is refused instead of admitted as an ungated Guest.
+ */
+export function assertNotFailOpen(): void {
+  if (process.env.NODE_ENV === "production" && !enterpriseSso.enabled) {
+    throw new HttpError(503, "SSO is not configured; this production deployment refuses requests until AUTH_SSO_ENABLED and its settings are set");
+  }
+}
+
+// guarded() admits the viewer before the handler runs; the request carries the
+// verdict so controllers can record who acted without a second session lookup.
+const viewers = new WeakMap<Request, Viewer>();
+
+/** Audit actor for a request: the admitted user's email ("anonymous" with SSO off). */
+export const actorFor = (req: Request): string => viewers.get(req)?.user.email ?? "anonymous";
+
 /** The signed-in user, or null. Never throws for "signed out". */
 export async function currentSession(req: Request) {
   const session = await auth.api.getSession({ headers: req.headers });
@@ -106,7 +123,8 @@ export async function currentSession(req: Request) {
  * The one guard every /api/v1 route runs through (http.ts's `guarded`).
  */
 export async function requireAccess(req: Request, permission: Permission): Promise<Viewer | null> {
-  // SSO off = the app as it was before SSO existed: a local tool, no gate.
+  assertNotFailOpen();
+  // SSO off (outside production) = the app as it was before SSO existed: a local tool, no gate.
   if (!enterpriseSso.enabled) return null;
 
   const user = await currentSession(req);
@@ -121,7 +139,9 @@ export async function requireAccess(req: Request, permission: Permission): Promi
         : "Your account has no access to the Education Dashboard — ask your organization admin in the portal",
     );
   }
-  return { user, access };
+  const viewer: Viewer = { user, access };
+  viewers.set(req, viewer);
+  return viewer;
 }
 
 /**

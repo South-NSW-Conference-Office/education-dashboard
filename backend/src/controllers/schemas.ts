@@ -1,15 +1,15 @@
-/** Request validation (Zod). Loose on purpose where the frontend sends extra, derived fields — those are ignored on write. */
+/** Request validation (Zod). The frontend sends extra, derived fields — those are tolerated but stripped, never stored. */
 import { z } from "zod";
 import { SOURCE_SYSTEMS } from "@/domain/types";
 
 const num = z.coerce.number().default(0);
-const line = z.object({ code: z.string().default(""), label: z.string().min(1), budget: num, actual: num, annualBudget: num, eoyEstimate: num }).passthrough();
-const group = z.object({ group: z.string().min(1), rows: z.array(line).default([]) }).passthrough();
-const category = z.object({ label: z.string().min(1), budget: num, actual: num, annualBudget: num, eoyEstimate: num, sub: z.array(z.object({ label: z.string(), budget: num, actual: num, annualBudget: num, eoyEstimate: num }).passthrough()).optional() }).passthrough();
-const obligation = z.object({ name: z.string().default(""), payment: num, frequency: z.string().default(""), ends: z.string().default(""), notes: z.string().default("") }).passthrough();
+const line = z.object({ code: z.string().default(""), label: z.string().min(1), budget: num, actual: num, annualBudget: num, eoyEstimate: num });
+const group = z.object({ group: z.string().min(1), rows: z.array(line).default([]) });
+const category = z.object({ label: z.string().min(1), budget: num, actual: num, annualBudget: num, eoyEstimate: num, sub: z.array(z.object({ label: z.string(), budget: num, actual: num, annualBudget: num, eoyEstimate: num })).optional() });
+const obligation = z.object({ name: z.string().default(""), payment: num, frequency: z.string().default(""), ends: z.string().default(""), notes: z.string().default("") });
 
 export const boardDocumentSchema = z.object({
-  meta: z.object({ asAt: z.string().min(1), draft: z.boolean().optional() }).passthrough(),
+  meta: z.object({ asAt: z.string().min(1), draft: z.boolean().optional() }),
   addback: z.object({ ytdBudget: num, ytdActual: num }).default({ ytdBudget: 0, ytdActual: 0 }),
   priorYear: z.object({ debtorsCurrent: num, debtorsPrior: num, note: z.string().default("") }).default({ debtorsCurrent: 0, debtorsPrior: 0, note: "" }),
   loans: z.array(obligation).default([]),
@@ -18,7 +18,7 @@ export const boardDocumentSchema = z.object({
   income: z.array(category).default([]),
   expenditure: z.array(category).default([]),
   details: z.object({ income: z.array(group).default([]), expenditure: z.array(group).default([]) }),
-}).passthrough();
+});
 export type BoardDocumentBody = z.infer<typeof boardDocumentSchema>;
 
 export const lineItemPatchSchema = z.object({

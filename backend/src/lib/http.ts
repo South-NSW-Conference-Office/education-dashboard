@@ -27,8 +27,7 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response
       if (err instanceof HttpError) return NextResponse.json({ error: err.message, details: err.details ?? null }, { status: err.status });
       if (err instanceof ZodError) return NextResponse.json({ error: "Invalid request", details: err.issues }, { status: 400 });
       console.error(err);
-      const message = err instanceof Error ? err.message : "Unexpected error";
-      return NextResponse.json({ error: message }, { status: 500 });
+      return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
     }
   };
 }

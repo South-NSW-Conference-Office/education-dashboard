@@ -5,10 +5,11 @@
  * again regardless).
  */
 import { handle, HttpError, ok } from "@/lib/http";
-import { currentSession, requireAccess } from "@/lib/access";
+import { assertNotFailOpen, currentSession, requireAccess } from "@/lib/access";
 import { enterpriseSso } from "@/lib/sso";
 
 export const GET = handle(async (req: Request) => {
+  assertNotFailOpen();
   if (!enterpriseSso.enabled) {
     // SSO off: the app is an open local tool; report a guest with every permission.
     return ok({
